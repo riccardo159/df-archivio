@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: df-archivio
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5431}/ms_infasamento
+    username: ${POSTGRES_USER:ms_infasamento}
+    password: ${POSTGRES_PASSWORD:secret}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 10
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+server:
+  port: 8087
+
+app:
+  internal:
+    token: ${INTERNAL_TOKEN:test}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+df-infasamento:
+  expected-api-key: test
+  allowed-users:
+    - admin
+
+# Configurazione NFS Share per quadratura documenti
+quadratura:
+  nfs:
+    enabled: ${NFS_ENABLED:true}
+    server: ${NFS_SERVER:localhost}
+    port: ${NFS_PORT:2049}
+    share-path: ${NFS_SHARE_PATH:/shared}
+    mount-path: ${NFS_MOUNT_PATH:/mnt/nfs-share}
+    connection-timeout: ${NFS_CONNECTION_TIMEOUT:30000}
+    retry-attempts: ${NFS_RETRY_ATTEMPTS:3}
+    retry-delay: ${NFS_RETRY_DELAY:5000}
+    document-paths:
+      dms-path: ${NFS_DMS_PATH:dms/fatture}
+      pa-path: ${NFS_PA_PATH:pa/fatture}
+      rdi-path: ${NFS_RDI_PATH:rdi/fatture}
+      pdf-path: ${NFS_PDF_PATH:pdf/fatture}
+      txt-path: ${NFS_TXT_PATH:txt/fatture}
+      stampa-path: ${NFS_STAMPA_PATH:stampa/fatture}
+
+smb:
+  server: zenit.aceaspa.it
+  share: Idrico_collaudo_DMS_DATI$
+  base-path: aat2_OUTBOUND/FLUSSI_STAMPATORE/COMPUNET
+  username: TI\C022418
+  password: ACEAparty!23
+  domain: ACEASPA   # oppure "" se non serve
