@@ -65,6 +65,6 @@ smb:
   server: zenit.aceaspa.it
   share: Idrico_collaudo_DMS_DATI$
   base-path: aat2_OUTBOUND/FLUSSI_STAMPATORE/COMPUNET
-  username: TI\C022418
+  username: C022418
   password: ACEAparty!23
-  domain: ACEASPA   # oppure "" se non serve
+  domain: TI
