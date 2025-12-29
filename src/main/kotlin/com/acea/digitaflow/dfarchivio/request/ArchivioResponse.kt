@@ -1,18 +1,19 @@
 package com.acea.digitaflow.dfarchivio.request
 
+import com.acea.digitalflow.df_common.entity.DocumentiRecapito
+import com.acea.digitalflow.df_common.entity.InfoGeneriche
+import com.acea.digitalflow.df_common.entity.Stato
+
 //todo modificare
 data class ArchivioResponse(
+    var id: Long? = null,
     var lotto: String? = null,
-    var dcsId: String? = null,
-    var tipoMail: String? = null,
-    var mittente: String? = null,
-    var destinatario: String? = null,
-    var oggetto: String? = null,
-    var descrizione: String? = null,
-    val codCliente: String? = null,
-    val denomCliente: String? = null,
-    val destinatariCC: String? = null,
-    val nomefileEML: String? = null,
-    val sapXmlData: String? = null,
+    var objectId: String? = null,
+    var nomeFilePdf: String? = null,
+    var idChannel: String? = null,
+    var idArea: String? = null,
+    var infoGeneriche: InfoGeneriche? = null,
+    var documentiRecapito: DocumentiRecapito? = null,
+    var codStato: Stato? = null,
 ) {
 }

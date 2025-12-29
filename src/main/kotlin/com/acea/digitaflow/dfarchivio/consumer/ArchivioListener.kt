@@ -15,9 +15,9 @@ class ArchivioListener() {
         groupId = "archivio-consumer-group"
     )
     fun handleArchivio(archivio: ArchivioResponse) {
-        logger.info("? Ricevuto messaggio Mail - ID: ${archivio.dcsId}")
+        logger.info("? Ricevuto messaggio Mail - ID: ${archivio.id}")
         if (archivio != null) {
-            logger.info("? Ricevuto messaggio Mail - ID: ${archivio.dcsId}")
+            logger.info("? Ricevuto messaggio Mail - ID: ${archivio.id}")
         }
         processArchivio(archivio)
     }
