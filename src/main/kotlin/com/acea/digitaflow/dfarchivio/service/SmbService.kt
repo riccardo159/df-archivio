@@ -1,6 +1,6 @@
 package com.acea.digitaflow.dfarchivio.service
 
-import com.acea.digitaflow.dfarchivio.SmbProperties
+import com.acea.digitaflow.dfarchivio.config.SmbProperties
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation

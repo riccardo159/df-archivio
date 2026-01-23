@@ -1,7 +1,7 @@
 package com.acea.digitaflow.dfarchivio.service
 
 
-import com.acea.digitaflow.dfarchivio.SmbProperties
+import com.acea.digitaflow.dfarchivio.config.SmbProperties
 import com.acea.digitaflow.dfarchivio.dto.FileVerificationResult
 import com.acea.digitaflow.dfarchivio.dto.TipoErroreFile
 import org.slf4j.LoggerFactory
