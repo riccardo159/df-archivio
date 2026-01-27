@@ -9,6 +9,7 @@ import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
 
 @SpringBootApplication
+@EntityScan(basePackages = ["com.acea.digitalflow.df_common.entity"])
 class DfArchivioApplication{
     @Bean
     fun startupRunner(smbService: SmbService) = CommandLineRunner {
