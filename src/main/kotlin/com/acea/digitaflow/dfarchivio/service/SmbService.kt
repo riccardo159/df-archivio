@@ -26,7 +26,7 @@ class SmbService(
      * Restituisce una sessione SMB e la DiskShare per la share configurata.
      * Usa un `use` annidato in ogni metodo pubblico.
      */
-    private fun <T> withShare(block: (DiskShare) -> T): T {
+    fun <T> withShare(block: (DiskShare) -> T): T {
         val client = SMBClient()
         client.use { smbClient ->
             logger.debug("Connessione SMB a server ${props.server}, share ${props.share}")
@@ -124,7 +124,7 @@ class SmbService(
     /**
      * Costruisce il path completo relativo alla share, partendo da basePath.
      */
-    private fun buildPath(relativeDir: String?): String =
+    fun buildPath(relativeDir: String?): String =
         if (relativeDir.isNullOrBlank()) props.basePath.trimEnd('/')
         else props.basePath.trimEnd('/') + "/" + relativeDir.trim('/')
 

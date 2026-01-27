@@ -1,12 +1,15 @@
 package com.acea.digitaflow.dfarchivio.consumer
 
-import com.acea.digitaflow.dfarchivio.request.ArchivioResponse
+import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
+import com.acea.digitaflow.dfarchivio.service.ArchivioService
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Service
 
 @Service
-class ArchivioListener() {
+class ArchivioListener(
+    private val archivioService: ArchivioService,
+) {
     private val logger = LoggerFactory.getLogger(ArchivioListener::class.java)
 
     @KafkaListener(
@@ -14,16 +17,9 @@ class ArchivioListener() {
         containerFactory = "archivioKafkaListenerContainerFactory",
         groupId = "archivio-consumer-group"
     )
-    fun handleArchivio(archivio: ArchivioResponse) {
-        logger.info("? Ricevuto messaggio Mail - ID: ${archivio.id}")
-        if (archivio != null) {
-            logger.info("? Ricevuto messaggio Mail - ID: ${archivio.id}")
-        }
-        processArchivio(archivio)
-    }
-
-    private fun processArchivio(archivio: ArchivioResponse) {
-        //TODO
+    fun handleArchivio(archivio: ArchivioRequest) {
+        logger.info("? Ricevuto messaggio Mail - ID: ${archivio.dcsId}")
+        archivioService.archiviazione(archivio)
     }
 
 }

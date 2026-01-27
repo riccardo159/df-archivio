@@ -1,6 +1,6 @@
 package com.acea.digitaflow.dfarchivio.config
 
-import com.acea.digitaflow.dfarchivio.request.ArchivioResponse
+import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -34,7 +34,7 @@ class KafkaConfig {
     fun kafkaTemplate(): KafkaTemplate<String, Any> = KafkaTemplate(producerFactory())
 
     @Bean
-    fun consumerFactory(): ConsumerFactory<String, ArchivioResponse> =
+    fun consumerFactory(): ConsumerFactory<String, ArchivioRequest> =
         DefaultKafkaConsumerFactory(
             mapOf(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to "localhost:9092",
@@ -44,7 +44,7 @@ class KafkaConfig {
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ErrorHandlingDeserializer::class.java,
                 ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS to JsonDeserializer::class.java,
 
-                JsonDeserializer.VALUE_DEFAULT_TYPE to ArchivioResponse::class.java.name,
+                JsonDeserializer.VALUE_DEFAULT_TYPE to ArchivioRequest::class.java.name,
                 JsonDeserializer.USE_TYPE_INFO_HEADERS to false,
                 JsonDeserializer.TRUSTED_PACKAGES to "com.acea.digitaflow.**",
 
@@ -55,9 +55,9 @@ class KafkaConfig {
 
     @Bean
     fun archivioKafkaListenerContainerFactory():
-            ConcurrentKafkaListenerContainerFactory<String, ArchivioResponse> {
+            ConcurrentKafkaListenerContainerFactory<String, ArchivioRequest> {
 
-        val factory = ConcurrentKafkaListenerContainerFactory<String, ArchivioResponse>()
+        val factory = ConcurrentKafkaListenerContainerFactory<String, ArchivioRequest>()
         factory.consumerFactory = consumerFactory()
         factory.containerProperties.ackMode = ContainerProperties.AckMode.RECORD
         return factory
