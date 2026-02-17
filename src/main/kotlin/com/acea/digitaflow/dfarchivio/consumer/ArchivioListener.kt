@@ -18,8 +18,7 @@ class ArchivioListener(
         groupId = "archivio-consumer-group"
     )
     fun handleArchivio(archivio: ArchivioRequest) {
-        logger.info("? Ricevuto messaggio Mail - ID: ${archivio.dcsId}")
-        archivioService.archiviazione(archivio)
+        logger.info("Ricevuto messaggio Archivio - dcsId: ${archivio.dcsId}")
+        archivioService.forward(archivio)
     }
-
 }

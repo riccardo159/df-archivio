@@ -31,6 +31,8 @@ kafka:
     archivio: ${KAFKA_ARCHIVIO_TOPIC:archivio-topic}
     mail: ${KAFKA_MAIL_TOPIC:mail-topic}
     posta: ${KAFKA_POSTA_TOPIC:posta-topic}
+  notification:
+    topic: ${KAFKA_NOTIFICATION_TOPIC:archivio-notification-topic}
 
 server:
   port: 8087

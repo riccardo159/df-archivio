@@ -1,12 +1,15 @@
 package com.acea.digitaflow.dfarchivio.consumer
 
 import com.acea.digitaflow.dfarchivio.request.MailRequest
+import com.acea.digitaflow.dfarchivio.service.MailService
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Service
 
 @Service
-class MailListener {
+class MailListener(
+    private val mailService: MailService
+) {
 
     private val logger = LoggerFactory.getLogger(MailListener::class.java)
 
@@ -17,5 +20,6 @@ class MailListener {
     )
     fun handleMail(mail: MailRequest) {
         logger.info("Ricevuto messaggio Mail - dcsId: ${mail.dcsId}")
+        mailService.elaboraMail(mail)
     }
 }

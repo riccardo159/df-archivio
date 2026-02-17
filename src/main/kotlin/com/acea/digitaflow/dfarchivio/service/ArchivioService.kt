@@ -1,5 +1,6 @@
 package com.acea.digitaflow.dfarchivio.service
 
+import com.acea.digitaflow.dfarchivio.producer.NotificationProducerService
 import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -12,7 +13,8 @@ import java.util.EnumSet
 
 @Service
 class ArchivioService(
-    private val sbmService: SmbService
+    private val sbmService: SmbService,
+    private val notificationProducerService: NotificationProducerService
 ) {
     private fun sapDocIdDestPath(societa: String): String =
         sbmService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_SAPDOCID")
@@ -20,6 +22,11 @@ class ArchivioService(
     private fun noSapDocIdDestPath(societa: String): String =
         sbmService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_NO_SAPDOCID")
     private val logger = LoggerFactory.getLogger(ArchivioService::class.java)
+
+    fun forward(archivio: ArchivioRequest) {
+        logger.info("Forward Archivio verso notification - dcsId: {}", archivio.dcsId)
+        notificationProducerService.inviaNotifica(archivio)
+    }
 
     fun archiviazione(archivio: ArchivioRequest) {
         logger.info("Avvio archiviazione DMS per dcsId=${archivio.dcsId}, categoria=${archivio.categoriaStampa}, esito=${archivio.esitoSdi}, canaleSecondario=${archivio.canaleSecondario}")
