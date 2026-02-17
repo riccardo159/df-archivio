@@ -13,7 +13,7 @@ class ArchivioListener(
     private val logger = LoggerFactory.getLogger(ArchivioListener::class.java)
 
     @KafkaListener(
-        topics = ["archivio-topic"],
+        topics = ["\${kafka.topics.archivio:archivio-topic}"],
         containerFactory = "archivioKafkaListenerContainerFactory",
         groupId = "archivio-consumer-group"
     )
