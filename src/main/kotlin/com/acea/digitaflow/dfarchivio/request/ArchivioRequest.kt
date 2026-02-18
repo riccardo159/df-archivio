@@ -10,6 +10,6 @@ data class ArchivioRequest(
     var nomeFileEnti: String,
     var dmsDestPath: String? = null,
     var esitoSdi: Int,
-    var societa : String
+    var societa : String,
 ) {
 }

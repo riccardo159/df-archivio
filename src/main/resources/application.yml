@@ -27,9 +27,9 @@ spring:
 
 kafka:
   topics:
-    archivio: ${KAFKA_ARCHIVIO_TOPIC:archivio-topic}
-    mail: ${KAFKA_MAIL_TOPIC:mail-topic}
-    posta: ${KAFKA_POSTA_TOPIC:posta-topic}
+    archivio: ${KAFKA_ARCHIVIO_TOPIC:infasamento-archivio-archivio-topic}
+    mail: ${KAFKA_MAIL_TOPIC:infasamento-archivio-mail-topic}
+    posta: ${KAFKA_POSTA_TOPIC:infasamento-archivio-posta-topic}
   notification:
     topic: ${KAFKA_NOTIFICATION_TOPIC:archivio-notification-topic}
 

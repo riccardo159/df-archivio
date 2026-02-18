@@ -2,6 +2,8 @@ package com.acea.digitaflow.dfarchivio.service
 
 import com.acea.digitaflow.dfarchivio.producer.NotificationProducerService
 import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
+import com.acea.digitalflow.df_common.dto.ArchivioDto
+import com.acea.digitalflow.df_common.dto.ArchivioNotificationRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import com.hierynomus.msdtyp.AccessMask
@@ -23,10 +25,21 @@ class ArchivioService(
         sbmService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_NO_SAPDOCID")
     private val logger = LoggerFactory.getLogger(ArchivioService::class.java)
 
-    fun forward(archivio: ArchivioRequest) {
-        logger.info("Forward Archivio verso notification - dcsId: {}", archivio.dcsId)
-        notificationProducerService.inviaNotifica(archivio)
+    fun forward(archivi: List<ArchivioDto>) {
+        logger.info("Forward Archivio verso notification - count={}", archivi.size)
+
+        val requests = archivi.map { archivio ->
+            ArchivioNotificationRequest(
+                tipoCanaleSecondario = "ARCHIVIO",
+                flgCanaleSecondario = true,
+                tipoDocumento = "ARCHIVIO",
+                datiDocumento = archivio
+            )
+        }
+
+        notificationProducerService.inviaNotifica(requests)
     }
+
 
     fun archiviazione(archivio: ArchivioRequest) {
         logger.info("Avvio archiviazione DMS per dcsId=${archivio.dcsId}, categoria=${archivio.categoriaStampa}, esito=${archivio.esitoSdi}, canaleSecondario=${archivio.canaleSecondario}")

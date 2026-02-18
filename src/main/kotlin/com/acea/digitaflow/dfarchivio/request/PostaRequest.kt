@@ -2,7 +2,7 @@ package com.acea.digitaflow.dfarchivio.request
 
 data class PostaRequest(
     var lotto: String? = null,
-    var dcsId: String? = null,
+    var dcsId: String,
     var objectId: String? = null,
     var nomeFilePdf: String? = null,
     var codiceRaccomandataPosteItaliane: String? = null,

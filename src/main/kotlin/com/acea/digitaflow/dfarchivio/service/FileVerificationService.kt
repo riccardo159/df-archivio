@@ -1,7 +1,6 @@
 package com.acea.digitaflow.dfarchivio.service
 
 
-import com.acea.digitaflow.dfarchivio.config.SmbProperties
 import com.acea.digitaflow.dfarchivio.dto.FileVerificationResult
 import com.acea.digitaflow.dfarchivio.dto.TipoErroreFile
 import org.slf4j.LoggerFactory
@@ -107,6 +106,7 @@ class FileVerificationService(
             )
         }
     }
+
     /**
      * Utility per costruire un path leggibile (relativo alla share SMB).
      */

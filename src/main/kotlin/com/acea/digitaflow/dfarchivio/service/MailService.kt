@@ -1,7 +1,8 @@
 package com.acea.digitaflow.dfarchivio.service
 
 import com.acea.digitaflow.dfarchivio.producer.NotificationProducerService
-import com.acea.digitaflow.dfarchivio.request.MailRequest
+import com.acea.digitalflow.df_common.dto.ArchivioNotificationRequest
+import com.acea.digitalflow.df_common.dto.MailDto
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -12,8 +13,20 @@ class MailService(
 
     private val logger = LoggerFactory.getLogger(MailService::class.java)
 
-    fun elaboraMail(mail: MailRequest) {
-        logger.info("Elaborazione Mail - dcsId: {}", mail.dcsId)
-        notificationProducerService.inviaNotifica(mail)
+    fun elaboraMail(mails: List<MailDto>) {
+        logger.info("Elaborazione Mail - count={}", mails.size)
+
+        val requests = mails.map { mail ->
+            ArchivioNotificationRequest(
+                tipoCanaleSecondario = "MAIL",// TODO distinguere MAIL / PEC
+                flgCanaleSecondario = true,
+                tipoDocumento = "MAIL",
+                datiDocumento = mail
+            )
+        }
+
+        notificationProducerService.inviaNotifica(requests)
     }
+
 }
+
