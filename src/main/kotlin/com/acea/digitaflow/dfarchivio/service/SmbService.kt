@@ -1,23 +1,15 @@
 package com.acea.digitaflow.dfarchivio.service
 
-import com.acea.digitaflow.dfarchivio.config.SmbProperties
-import com.hierynomus.msdtyp.AccessMask
-import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation
-import com.hierynomus.mssmb2.SMB2CreateDisposition
-import com.hierynomus.mssmb2.SMB2CreateOptions
-import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.DiskShare
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.io.ByteArrayInputStream
-import java.util.EnumSet
 
 @Service
 class SmbService(
-    private val props: SmbProperties
+    private val configProvider: SmbConfigService
 ) {
 
     private val logger = LoggerFactory.getLogger(SmbService::class.java)
@@ -27,106 +19,91 @@ class SmbService(
      * Usa un `use` annidato in ogni metodo pubblico.
      */
     fun <T> withShare(block: (DiskShare) -> T): T {
-        val client = SMBClient()
-        client.use { smbClient ->
-            logger.debug("Connessione SMB a server ${props.server}, share ${props.share}")
+        val props = configProvider.getEffectiveConfig("DEFAULT")
 
-            val connection = smbClient.connect(props.server)
+        val config = com.hierynomus.smbj.SmbConfig.builder()
+            .withTimeout(props.connectionTimeout.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+            .withSoTimeout(props.soTimeout.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+            .build()
 
-            val ac = AuthenticationContext(
-                props.username,
-                props.password.toCharArray(),
-                props.domain
+        SMBClient(config).use { smbClient ->
+            val server = props.server
+            val port = props.port
+
+            logger.info(
+                "SMB session -> {}:{} share='{}' basePath='{}' timeout={}ms soTimeout={}ms",
+                server, port, props.share, props.basePath, props.connectionTimeout, props.soTimeout
             )
 
-            val session = connection.authenticate(ac)
-            val share = session.connectShare(props.share) as DiskShare
+            val connection = smbClient.connect(server, port)
+            try {
+                val ac = AuthenticationContext(
+                    props.username,
+                    props.password.toCharArray(),
+                    props.domain.takeIf { it?.isNotBlank() == true }
+                )
 
-            share.use {
-                return block(it)
+                val session = connection.authenticate(ac)
+                val share = session.connectShare(props.share) as DiskShare
+
+                share.use { return block(it) }
+            } catch (e: Exception) {
+                throw smbException("Errore SMB session verso $server:$port", e)
+            } finally {
+                // connection verrà chiusa quando SMBClient viene chiuso, ma chiudiamola esplicitamente
+                runCatching { connection.close() }
             }
         }
+    }
+
+
+    private fun smbException(msg: String, e: Throwable): RuntimeException {
+        val root = rootCause(e)
+        logger.error("ERRORE SMB: {}. rootCause={} - {}", msg, root.javaClass.name, root.message, e)
+        return RuntimeException("$msg: ${root.message}", e)
+    }
+
+    private fun rootCause(t: Throwable): Throwable {
+        var cur: Throwable = t
+        while (cur.cause != null && cur.cause !== cur) cur = cur.cause!!
+        return cur
     }
 
     /**
      * Lista i file nella directory base (COMPUNET) o in una sotto directory relativa.
      */
-    fun listFiles(relativeDir: String? = null): List<String> {
+    fun listFiles(share: DiskShare, relativeDir: String? = null): List<String> {
         val dir = buildPath(relativeDir)
-        logger.info("Listing file SMB su $dir")
+        logger.info("Listing SMB dir: {}", dir)
 
-        return withShare { share ->
-            val entries = share.list(dir, "*")  // puoi filtrare es. "*.PDF"[web:244][web:278]
-            entries
-                .filter { !it.fileName.equals(".", true) && !it.fileName.equals("..", true) }
+        return try {
+            share.list(dir, "*")
+                .filter { it.fileName != "." && it.fileName != ".." }
                 .map(FileIdBothDirectoryInformation::getFileName)
-        }
-    }
-
-    /**
-     * Scarica un file e restituisce il contenuto come ByteArray.
-     */
-    fun downloadFile(relativeDir: String? = null, fileName: String): ByteArray {
-        val dir = buildPath(relativeDir)
-        val fullPath = "$dir/$fileName"
-        logger.info("Download file da SMB: $fullPath")
-
-        return withShare { share ->
-            val file = share.openFile(
-                fullPath,
-                EnumSet.of(AccessMask.GENERIC_READ),
-                EnumSet.noneOf(FileAttributes::class.java),
-                EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
-                SMB2CreateDisposition.FILE_OPEN,
-                EnumSet.noneOf(SMB2CreateOptions::class.java)
-            )
-
-            file.use { f ->
-                f.inputStream.use { input ->
-                    input.readAllBytes()
-                }
+        } catch (e: Exception) {
+            if (isPathNotFound(e)) {
+                logger.warn("SMB dir non trovato: {} (skip)", dir)
+                emptyList()
+            } else {
+                throw e
             }
         }
     }
 
-    /**
-     * Upload di un file (sovrascrive se esiste).
-     */
-    fun uploadFile(relativeDir: String? = null, fileName: String, content: ByteArray) {
-        val dir = buildPath(relativeDir)
-        val fullPath = "$dir/$fileName"
-        logger.info("Upload file su SMB: $fullPath, size=${content.size} bytes")
+    private fun isPathNotFound(e: Exception): Boolean =
+        e is com.hierynomus.mssmb2.SMBApiException &&
+                (e.message?.contains("STATUS_OBJECT_PATH_NOT_FOUND", ignoreCase = true) == true ||
+                        e.message?.contains("0xc000003a", ignoreCase = true) == true)
 
-        withShare { share ->
-            // Crea le directory intermedie se non esistono
-            createDirectoriesRecursively(share, dir)
-
-            val file = share.openFile(
-                fullPath,
-                EnumSet.of(AccessMask.GENERIC_WRITE),
-                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
-                SMB2CreateDisposition.FILE_OVERWRITE_IF,   // crea o sovrascrive[web:278][web:266]
-                EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE)
-            )
-
-            file.use { f ->
-                ByteArrayInputStream(content).use { input ->
-                    val out = f.outputStream
-                    out.use { o ->
-                        input.copyTo(o)
-                    }
-                }
-            }
-        }
-    }
 
     /**
      * Costruisce il path completo relativo alla share, partendo da basePath.
      */
-    fun buildPath(relativeDir: String?): String =
-        if (relativeDir.isNullOrBlank()) props.basePath.trimEnd('/')
+    fun buildPath(relativeDir: String?): String {
+        val props = configProvider.getEffectiveConfig("DEFAULT")
+        return if (relativeDir.isNullOrBlank()) props.basePath.trimEnd('/')
         else props.basePath.trimEnd('/') + "/" + relativeDir.trim('/')
+    }
 
     /**
      * Crea ricorsivamente la gerarchia di directory (se non esistono) all'interno della share.
@@ -145,11 +122,14 @@ class SmbService(
         }
     }
 
-    fun fileExists(fullPath: String): Boolean {
-        logger.debug("Verifica esistenza file SMB: $fullPath")
-        return withShare { share ->
-            share.fileExists(fullPath)
-        }
+    fun fileExists(share: DiskShare, fullPath: String): Boolean {
+        val normalized = normalizeSmbPath(fullPath)
+        logger.debug("Check SMB exists: {}", normalized)
+        return share.fileExists(normalized)
     }
+
+    private fun normalizeSmbPath(path: String): String =
+        path.trim().trimStart('/', '\\').replace('/', '\\')
+
 
 }

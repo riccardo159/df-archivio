@@ -3,14 +3,13 @@ spring:
     name: df-archivio
 
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5431}/ms_infasamento
-    username: ${POSTGRES_USER:ms_infasamento}
-    password: ${POSTGRES_PASSWORD:secret}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5431/ms_infasamento
+    username: ms_infasamento
+    password: secret
 
-  jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+      multiTenancy: SCHEMA
     show-sql: false
     properties:
       hibernate:

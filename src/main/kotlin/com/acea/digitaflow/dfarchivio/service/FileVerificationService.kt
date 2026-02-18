@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service
 @Service
 class FileVerificationService(
     private val smbService: SmbService,
-    private val props: SmbProperties
+    private val configProvider: SmbConfigService
 
 ) {
 
@@ -20,6 +20,7 @@ class FileVerificationService(
      * Verifica se un file esiste sulla share SMB, dato il nome file e il tipo documento.
      */
     fun verificaFileEsistente(nomeFile: String?, tipoDocumento: String): FileVerificationResult {
+        val props = configProvider.getEffectiveConfig("DEFAULT")
 
         if (nomeFile.isNullOrBlank()) {
             return FileVerificationResult(
@@ -35,32 +36,32 @@ class FileVerificationService(
         return try {
             val pathCompleto = nomeFile.trim()
 
-            // cerca l'ultimo separatore "\" (UNC)
-            val lastSep = pathCompleto.lastIndexOf('\\')
-
-            val (relativeDir, fileName) =
-                if (lastSep == -1) {
-                    // nessuna directory, solo nome
-                    null to pathCompleto
-                } else {
-                    val dir = pathCompleto.substring(0, lastSep)
-                    val name = pathCompleto.substring(lastSep + 1)
-                    dir to name
-                }
-// stringa runtime:  \\zenit.aceaspa.it\Idrico_collaudo_DMS_DATI$
+            // Costruisci il root della share
+            // Es: "\\zenit.aceaspa.it\Idrico_collaudo_DMS_DATI$"
             val shareRoot = "\\\\${props.server}\\${props.share.trim('\\')}"
 
-// absoluteDir = "\\zenit.aceaspa.it\Idrico_collaudo_DMS_DATI$\AAT2_OUTBOUND\FLUSSI_STAMPATORE\COMPUNET"
+            // Rimuovi il prefisso della share per ottenere il path relativo
+            // Es: "\\zenit.aceaspa.it\Idrico_collaudo_DMS_DATI$\AAT2_OUTBOUND\FLUSSI_STAMPATORE\file.pdf"
+            //  -> "AAT2_OUTBOUND\FLUSSI_STAMPATORE\file.pdf"
             val pathRelativo = pathCompleto
-                ?.removePrefix(shareRoot)  // -> "\AAT2_OUTBOUND\FLUSSI_STAMPATORE\COMPUNET"
-                ?.trimStart('\\')          // -> "AAT2_OUTBOUND\FLUSSI_STAMPATORE\COMPUNET"
+                .removePrefix(shareRoot)
+                .trimStart('\\')
+                .replace('\\', '/')  // Normalizza i separatori per SMB
 
+            // Estrai il nome del file
+            val lastSep = pathCompleto.lastIndexOf('\\')
+            val fileName = if (lastSep == -1) {
+                pathCompleto
+            } else {
+                pathCompleto.substring(lastSep + 1)
+            }
 
-            log.debug("Verifica esistenza file SMB: $pathCompleto (dir=$relativeDir, file=$fileName)")
+            log.debug("Verifica esistenza file SMB: pathCompleto=$pathCompleto, pathRelativo=$pathRelativo, fileName=$fileName")
 
-            val exists: Boolean = pathRelativo
-                ?.let { smbService.fileExists(it) }
-                ?: false
+            // Usa withShare per ottenere il DiskShare e verifica l'esistenza
+            val exists = smbService.withShare { share ->
+                smbService.fileExists(share, pathRelativo)
+            }
 
             if (!exists) {
                 log.debug("File non trovato su SMB: $pathCompleto")
@@ -106,7 +107,6 @@ class FileVerificationService(
             )
         }
     }
-
     /**
      * Utility per costruire un path leggibile (relativo alla share SMB).
      */
