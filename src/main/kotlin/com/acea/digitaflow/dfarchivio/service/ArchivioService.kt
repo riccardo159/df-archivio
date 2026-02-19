@@ -4,6 +4,8 @@ import com.acea.digitaflow.dfarchivio.producer.NotificationProducerService
 import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
 import com.acea.digitalflow.df_common.dto.ArchivioDto
 import com.acea.digitalflow.df_common.dto.ArchivioNotificationRequest
+import com.acea.digitalflow.df_common.enums.CanaleSecondario
+import com.acea.digitalflow.df_common.enums.TipoDocumento
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import com.hierynomus.msdtyp.AccessMask
@@ -30,10 +32,12 @@ class ArchivioService(
 
         val requests = archivi.map { archivio ->
             ArchivioNotificationRequest(
-                tipoCanaleSecondario = "ARCHIVIO",
+                tipoCanaleSecondario = CanaleSecondario.ARCHIVIO,
                 flgCanaleSecondario = true,
-                tipoDocumento = "ARCHIVIO",
-                datiDocumento = archivio
+                tipoDocumento = TipoDocumento.ARCHIVIAZIONE,
+                datiDocumento = archivio,
+                societa = archivio.societa,
+                dcsId = archivio.dcsId
             )
         }
 

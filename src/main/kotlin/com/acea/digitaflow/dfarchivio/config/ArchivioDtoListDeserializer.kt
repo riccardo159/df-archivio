@@ -33,6 +33,7 @@ class ArchivioDtoListDeserializer : Deserializer<List<ArchivioDto>> {
 
     private val log = LoggerFactory.getLogger(javaClass)
     private val objectMapper: ObjectMapper = jacksonObjectMapper()
+        .registerModule(JavaTimeModule())
 
     override fun deserialize(topic: String?, data: ByteArray?): List<ArchivioDto>? {
         if (data == null) return null
@@ -55,6 +56,7 @@ class MailDtoListDeserializer : Deserializer<List<MailDto>> {
 
     private val log = LoggerFactory.getLogger(javaClass)
     private val objectMapper: ObjectMapper = jacksonObjectMapper()
+        .registerModule(JavaTimeModule())
 
     override fun deserialize(topic: String?, data: ByteArray?): List<MailDto>? {
         if (data == null) return null

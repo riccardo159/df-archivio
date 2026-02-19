@@ -57,6 +57,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("commons-net:commons-net:3.10.0")
     implementation("com.hierynomus:smbj:0.14.0")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+
 }
 
 kotlin {

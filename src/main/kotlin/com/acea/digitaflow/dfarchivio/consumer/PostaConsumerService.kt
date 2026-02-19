@@ -45,8 +45,4 @@ class PostaConsumerService(private val postaService: PostaService) {
         }
     }
 
-    private fun processaPosta(postaDto: PostaDto) {
-        log.debug("Processamento posta: dcsId=${postaDto.dcsId}, societa=${postaDto.societa}")
-        // TODO: Implementa logica gestione posta
-    }
 }

@@ -1,9 +1,10 @@
 package com.acea.digitaflow.dfarchivio.service
 
 import com.acea.digitaflow.dfarchivio.producer.NotificationProducerService
-import com.acea.digitaflow.dfarchivio.request.PostaRequest
 import com.acea.digitalflow.df_common.dto.ArchivioNotificationRequest
 import com.acea.digitalflow.df_common.dto.PostaDto
+import com.acea.digitalflow.df_common.enums.CanaleSecondario
+import com.acea.digitalflow.df_common.enums.TipoDocumento
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -19,10 +20,12 @@ class PostaService(
 
         val mails: List<ArchivioNotificationRequest> = poste.map { posta ->
             ArchivioNotificationRequest(
-                tipoCanaleSecondario = "MAIL", // TODO distinguere MAIL / PEC
+                tipoCanaleSecondario = CanaleSecondario.POSTA, // TODO distinguere MAIL / PEC
                 flgCanaleSecondario = true,
-                tipoDocumento = "MAIL",
-                datiDocumento = posta
+                tipoDocumento = TipoDocumento.POSTALE,
+                datiDocumento = posta,
+                societa = posta.societa,
+                dcsId = posta.dcsId
             )
         }
 
