@@ -50,7 +50,6 @@ class SmbService(
             } catch (e: Exception) {
                 throw smbException("Errore SMB session verso $server:$port", e)
             } finally {
-                // connection verrà chiusa quando SMBClient viene chiuso, ma chiudiamola esplicitamente
                 runCatching { connection.close() }
             }
         }
@@ -69,9 +68,6 @@ class SmbService(
         return cur
     }
 
-    /**
-     * Lista i file nella directory base (COMPUNET) o in una sotto directory relativa.
-     */
     fun listFiles(share: DiskShare, relativeDir: String? = null): List<String> {
         val dir = buildPath(relativeDir)
         logger.info("Listing SMB dir: {}", dir)
@@ -96,18 +92,12 @@ class SmbService(
                         e.message?.contains("0xc000003a", ignoreCase = true) == true)
 
 
-    /**
-     * Costruisce il path completo relativo alla share, partendo da basePath.
-     */
     fun buildPath(relativeDir: String?): String {
         val props = configProvider.getEffectiveConfig("DEFAULT")
         return if (relativeDir.isNullOrBlank()) props.basePath.trimEnd('/')
         else props.basePath.trimEnd('/') + "/" + relativeDir.trim('/')
     }
 
-    /**
-     * Crea ricorsivamente la gerarchia di directory (se non esistono) all'interno della share.
-     */
     private fun createDirectoriesRecursively(share: DiskShare, path: String) {
         val parts = path.split("/").filter { it.isNotBlank() }
         if (parts.isEmpty()) return

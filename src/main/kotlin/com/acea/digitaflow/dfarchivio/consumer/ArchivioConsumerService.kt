@@ -33,16 +33,16 @@ class ArchivioConsumerService(private val archivioService: ArchivioService) {
         acknowledgment: Acknowledgment
     ) {
         try {
-            log.info("📥 Ricevuto batch di ${archivioDtos.size} archivi [topic=$topic]")
+            log.info("Ricevuto batch di {} archivi [topic={}]", archivioDtos.size, topic)
 
-            archivioService.forward(archivioDtos)
+            archivioService.elaboraArchivio(archivioDtos)
 
             acknowledgment.acknowledge()
-            log.info("✓ Batch di ${archivioDtos.size} archivi completato e acknowledged")
+            log.info("Batch di {} archivi completato e acknowledged", archivioDtos.size)
 
         } catch (e: Exception) {
-            log.error("✗ Errore critico processamento batch archivi: ${e.message}", e)
-            throw e // Trigger retry
+            log.error("Errore critico processamento batch archivi: {}", e.message, e)
+            throw e
         }
     }
 

@@ -3,6 +3,7 @@ package com.acea.digitaflow.dfarchivio.config
 import com.acea.digitalflow.df_common.dto.ArchivioDto
 import com.acea.digitalflow.df_common.dto.MailDto
 import com.acea.digitalflow.df_common.dto.PostaDto
+import com.acea.digitaflow.dfarchivio.dto.FatturaArchivioDto
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -94,7 +95,28 @@ class PostaDtoListDeserializer : Deserializer<List<PostaDto>> {
     override fun close() {}
 }
 
-// ==================== KAFKA CONFIGURATION ====================
+/**
+ * Deserializer per FatturaArchivioDto (singolo oggetto, non lista)
+ */
+class FatturaArchivioDtoDeserializer : Deserializer<FatturaArchivioDto> {
+
+    private val log = LoggerFactory.getLogger(javaClass)
+    private val objectMapper: ObjectMapper = jacksonObjectMapper()
+        .registerModule(JavaTimeModule())
+
+    override fun deserialize(topic: String?, data: ByteArray?): FatturaArchivioDto? {
+        if (data == null) return null
+
+        return try {
+            objectMapper.readValue<FatturaArchivioDto>(data)
+        } catch (e: Exception) {
+            log.error("Errore deserializzazione FatturaArchivioDto: ${e.message}", e)
+            throw e
+        }
+    }
+
+    override fun close() {}
+}
 
 @EnableKafka
 @EnableKafkaRetryTopic
@@ -103,8 +125,6 @@ class KafkaConfig {
 
     @Value("\${spring.kafka.bootstrap-servers:localhost:9092}")
     private lateinit var bootstrapServers: String
-
-    // ==================== PRODUCER ====================
 
     @Bean
     fun producerFactory(): ProducerFactory<String, Any> =
@@ -123,8 +143,6 @@ class KafkaConfig {
 
     @Bean
     fun kafkaTemplate(): KafkaTemplate<String, Any> = KafkaTemplate(producerFactory())
-
-    // ==================== ARCHIVIO CONSUMER (LISTA) ====================
 
     @Bean
     fun archivioConsumerFactory(): ConsumerFactory<String, List<ArchivioDto>> =
@@ -153,8 +171,6 @@ class KafkaConfig {
         return factory
     }
 
-    // ==================== MAIL CONSUMER (LISTA) ====================
-
     @Bean
     fun mailConsumerFactory(): ConsumerFactory<String, List<MailDto>> =
         DefaultKafkaConsumerFactory(
@@ -181,8 +197,6 @@ class KafkaConfig {
         factory.containerProperties.pollTimeout = 3000
         return factory
     }
-
-    // ==================== POSTA CONSUMER (LISTA) ====================
 
     @Bean
     fun postaConsumerFactory(): ConsumerFactory<String, List<PostaDto>> =
@@ -211,7 +225,32 @@ class KafkaConfig {
         return factory
     }
 
-    // ==================== TASK SCHEDULER PER RETRY ====================
+    @Bean
+    fun sdiConsumerFactory(): ConsumerFactory<String, FatturaArchivioDto> =
+        DefaultKafkaConsumerFactory(
+            mapOf(
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
+                ConsumerConfig.GROUP_ID_CONFIG to "archivio-sdi-consumer-group",
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to FatturaArchivioDtoDeserializer::class.java,
+                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "earliest",
+                ConsumerConfig.MAX_POLL_RECORDS_CONFIG to 500,
+                ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG to 30000,
+                ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG to 10000
+            )
+        )
+
+    @Bean
+    fun sdiKafkaListenerContainerFactory():
+            ConcurrentKafkaListenerContainerFactory<String, FatturaArchivioDto> {
+        val factory = ConcurrentKafkaListenerContainerFactory<String, FatturaArchivioDto>()
+        factory.consumerFactory = sdiConsumerFactory()
+        factory.containerProperties.ackMode = ContainerProperties.AckMode.MANUAL
+        factory.setConcurrency(3)
+        factory.containerProperties.pollTimeout = 3000
+        return factory
+    }
 
     @Bean
     fun taskScheduler(): ThreadPoolTaskScheduler {

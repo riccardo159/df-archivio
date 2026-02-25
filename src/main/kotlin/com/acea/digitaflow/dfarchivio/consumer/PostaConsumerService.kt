@@ -1,6 +1,6 @@
 package com.acea.digitaflow.dfarchivio.consumer
 
-import com.acea.digitaflow.dfarchivio.service.PostaService
+import com.acea.digitaflow.dfarchivio.service.ArchivioService
 import com.acea.digitalflow.df_common.dto.PostaDto
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
@@ -13,7 +13,7 @@ import org.springframework.retry.annotation.Backoff
 import org.springframework.stereotype.Service
 
 @Service
-class PostaConsumerService(private val postaService: PostaService) {
+class PostaConsumerService(private val archivioService: ArchivioService) {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -33,14 +33,15 @@ class PostaConsumerService(private val postaService: PostaService) {
         acknowledgment: Acknowledgment
     ) {
         try {
-            log.info("📬 Ricevuto batch di ${postaDtos.size} poste [topic=$topic]")
-            postaService.elaboraPosta(postaDtos)
+            log.info("Ricevuto batch di {} poste [topic={}]", postaDtos.size, topic)
+
+            archivioService.elaboraPosta(postaDtos)
 
             acknowledgment.acknowledge()
-            log.info("✓ Batch di ${postaDtos.size} poste completato e acknowledged")
+            log.info("Batch di {} poste completato e acknowledged", postaDtos.size)
 
         } catch (e: Exception) {
-            log.error("✗ Errore critico processamento batch posta: ${e.message}", e)
+            log.error("Errore critico processamento batch posta: {}", e.message, e)
             throw e
         }
     }

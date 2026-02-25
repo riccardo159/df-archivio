@@ -1,9 +1,10 @@
 plugins {
     kotlin("jvm") version "2.0.21"
     kotlin("plugin.spring") version "2.0.21"
+    kotlin("plugin.jpa") version "2.0.21"
     id("org.springframework.boot") version "3.4.6"
     id("io.spring.dependency-management") version "1.1.7"
-    kotlin("plugin.jpa") version "2.0.21"
+    kotlin("kapt") version "2.0.21"
 }
 
 group = "com.acea.digitalflow"
@@ -58,7 +59,8 @@ dependencies {
     implementation("commons-net:commons-net:3.10.0")
     implementation("com.hierynomus:smbj:0.14.0")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
-
+    implementation("org.mapstruct:mapstruct:1.6.0")
+    kapt("org.mapstruct:mapstruct-processor:1.6.0")
 }
 
 kotlin {

@@ -30,6 +30,7 @@ kafka:
     archivio: ${KAFKA_ARCHIVIO_TOPIC:infasamento-archivio-archivio-topic}
     mail: ${KAFKA_MAIL_TOPIC:infasamento-archivio-mail-topic}
     posta: ${KAFKA_POSTA_TOPIC:infasamento-archivio-posta-topic}
+    sdi: ${KAFKA_SDI_TOPIC:sdi.archivio}
   notification:
     topic: ${KAFKA_NOTIFICATION_TOPIC:archivio-notification-topic}
 
