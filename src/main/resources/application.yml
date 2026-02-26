@@ -35,7 +35,7 @@ kafka:
     topic: ${KAFKA_NOTIFICATION_TOPIC:archivio-notification-topic}
 
 server:
-  port: ${SERVER_PORT:8087}
+  port: ${SERVER_PORT:8088}
 
 app:
   internal:

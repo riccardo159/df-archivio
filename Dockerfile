@@ -39,8 +39,8 @@ RUN if [ -z "$(ls -A ./jars/*.jar 2>/dev/null)" ]; then \
     rm -rf ./jars && \
     echo "Using JAR: $(basename "$JAR_FILE")"
 
-# Porta configurabile tramite variabile d'ambiente (default: 8087)
-ENV SERVER_PORT=8087
+# Porta configurabile tramite variabile d'ambiente (default: 8088)
+ENV SERVER_PORT=8088
 EXPOSE ${SERVER_PORT}
 
 # Configurazione JVM per container

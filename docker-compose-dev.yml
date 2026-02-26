@@ -5,9 +5,9 @@ services:
     container_name: df-archivio
     restart: unless-stopped
     ports:
-      - "${SERVER_PORT:-8087}:${SERVER_PORT:-8087}"
+      - "${SERVER_PORT:-8088}:${SERVER_PORT:-8088}"
     environment:
-      SERVER_PORT: ${SERVER_PORT:-8087}
+      SERVER_PORT: ${SERVER_PORT:-8088}
       POSTGRES_HOST: postgres_inf
       POSTGRES_PORT: 5432
       POSTGRES_USER: ms_infasamento
@@ -16,7 +16,7 @@ services:
       GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.configureondemand=true"
       GRADLE_USER_HOME: /root/.gradle
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${SERVER_PORT:-8087}/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${SERVER_PORT:-8088}/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       start_period: 300s
