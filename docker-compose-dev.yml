@@ -1,0 +1,30 @@
+# df-archivio - Microservizio per gestione archivio documenti
+services:
+  df-archivio:
+    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:latest
+    container_name: df-archivio
+    restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-8087}:${SERVER_PORT:-8087}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT:-8087}
+      POSTGRES_HOST: postgres_inf
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ms_infasamento
+      POSTGRES_PASSWORD: secret
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.configureondemand=true"
+      GRADLE_USER_HOME: /root/.gradle
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${SERVER_PORT:-8087}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 300s
+      retries: 3
+    networks:
+      acea-internal-network:
+        ipv4_address: 192.168.200.103
+
+networks:
+  acea-internal-network:
+    external: true

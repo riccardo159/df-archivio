@@ -35,7 +35,7 @@ kafka:
     topic: ${KAFKA_NOTIFICATION_TOPIC:archivio-notification-topic}
 
 server:
-  port: 8087
+  port: ${SERVER_PORT:8087}
 
 app:
   internal:
@@ -45,7 +45,7 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
-df-infasamento:
+df-archivio:
   expected-api-key: test
   allowed-users:
     - admin
