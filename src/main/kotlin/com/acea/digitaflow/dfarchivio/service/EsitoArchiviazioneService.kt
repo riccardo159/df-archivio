@@ -22,7 +22,7 @@ class EsitoArchiviazioneService(
 
     companion object {
         val SOCIETA_VALIDE = setOf(
-            "ATO2", "ATO5", "ACQU", "GORI", "GESE", "PUBL", "FIOR", "CGST", "UMBR"
+            "ATO2", "AAT5", "ACQU", "GORI", "GESE", "PUBL", "FIOR", "CGST", "UMBR"
         )
 
         val CANALI_VALIDI = setOf(
@@ -42,7 +42,7 @@ class EsitoArchiviazioneService(
         )
 
         // Validazione societa
-        if (request.societa !in SOCIETA_VALIDE) {
+        if (request.societa.uppercase() !in SOCIETA_VALIDE) {
             val msg = "Societa '${request.societa}' non valida. Valori ammessi: $SOCIETA_VALIDE"
             logger.warn(msg)
             return EsitoArchiviazioneResponse(msgErrore = msg)

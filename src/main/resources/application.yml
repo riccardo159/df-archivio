@@ -6,7 +6,8 @@ spring:
     url: jdbc:postgresql://localhost:5431/ms_infasamento
     username: ms_infasamento
     password: secret
-
+  jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
       multiTenancy: SCHEMA
@@ -35,7 +36,7 @@ kafka:
     topic: ${KAFKA_NOTIFICATION_TOPIC:archivio-notification-topic}
 
 server:
-  port: ${SERVER_PORT:8088}
+  port: ${SERVER_PORT:8087}
 
 app:
   internal:
@@ -68,11 +69,3 @@ quadratura:
       pdf-path: ${NFS_PDF_PATH:pdf/fatture}
       txt-path: ${NFS_TXT_PATH:txt/fatture}
       stampa-path: ${NFS_STAMPA_PATH:stampa/fatture}
-
-smb:
-  server: zenit.aceaspa.it
-  share: Idrico_collaudo_DMS_DATI$
-  base-path: aat2_OUTBOUND/FLUSSI_STAMPATORE/COMPUNET
-  username: C022418
-  password: ACEAparty!23
-  domain: TI

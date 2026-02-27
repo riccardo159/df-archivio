@@ -38,3 +38,4 @@ out/
 
 ### Kotlin ###
 .kotlin
+/hs_err_pid1300.log
