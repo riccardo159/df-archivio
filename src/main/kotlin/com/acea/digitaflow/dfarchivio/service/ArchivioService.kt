@@ -53,36 +53,40 @@ class ArchivioService(
         TenantContext.set(fatturaArchivioDto.societa)
         logger.info("TenantContext impostato per società '{}'", fatturaArchivioDto.societa)
 
-        val fattura = fatturaRepository.findByInfoGenericheDcsId(fatturaArchivioDto.dcsId)
-        if (fattura == null) {
-            logger.error("Fattura non trovata nel DB per dcsId={}", fatturaArchivioDto.dcsId)
-            throw IllegalStateException("Fattura non trovata per dcsId=${fatturaArchivioDto.dcsId}")
-        }
+        try {
+            val fattura = fatturaRepository.findByInfoGenericheDcsId(fatturaArchivioDto.dcsId)
+            if (fattura == null) {
+                logger.error("Fattura non trovata nel DB per dcsId={}", fatturaArchivioDto.dcsId)
+                throw IllegalStateException("Fattura non trovata per dcsId=${fatturaArchivioDto.dcsId}")
+            }
 
-        val infoGeneriche = fattura.infoGeneriche
-        val fatturaFile = fattura.fatturaFile
+            val infoGeneriche = fattura.infoGeneriche
+            val fatturaFile = fattura.fatturaFile
 
-        val archivioRequest = ArchivioRequest(
-            dcsId = fatturaArchivioDto.dcsId.toLong(),
-            categoriaStampa = resolveCategoriaStampa(fattura.modalitaStampa),
-            nomeFileDms = fatturaFile?.nomeFileDms ?: "",
-            canaleSecondario = infoGeneriche?.canaleSecondario?.name,
-            tipoCanaleSecondario = if (infoGeneriche?.flgCanaleSecondario == true) "SI" else "NO",
-            sapDocId = fattura.codiceInvioSap,
-            nomeFileEnti = fatturaFile?.nomeFilePa ?: fatturaFile?.nomeFileDms ?: "",
-            dmsDestPath = fatturaFile?.dmsDestPath,
-            esitoSdi = fatturaArchivioDto.esitoSdi,
-            societa = fatturaArchivioDto.societa
-        )
+            val archivioRequest = ArchivioRequest(
+                dcsId = fatturaArchivioDto.dcsId.toLong(),
+                categoriaStampa = resolveCategoriaStampa(fattura.modalitaStampa),
+                nomeFileDms = fatturaFile?.nomeFileDms ?: "",
+                canaleSecondario = infoGeneriche?.canaleSecondario?.name,
+                tipoCanaleSecondario = if (infoGeneriche?.flgCanaleSecondario == true) "SI" else "NO",
+                sapDocId = fattura.codiceInvioSap,
+                nomeFileEnti = fatturaFile?.nomeFilePa ?: fatturaFile?.nomeFileDms ?: "",
+                dmsDestPath = fatturaFile?.dmsDestPath,
+                esitoSdi = fatturaArchivioDto.esitoSdi,
+                societa = fatturaArchivioDto.societa
+            )
 
-        val esito = fatturaService.archiviazione(archivioRequest)
+            val esito = fatturaService.archiviazione(archivioRequest)
 
-        if (esito.msgErrore.isEmpty()) {
-            val notifica = notificationMapper.toNotification(fatturaArchivioDto)
-            notificationProducerService.inviaNotifica(listOf(notifica))
-            logger.info("Archiviazione SDI completata con successo per dcsId={}", fatturaArchivioDto.dcsId)
-        } else {
-            logger.warn("Archiviazione SDI con errori per dcsId={}: {}", fatturaArchivioDto.dcsId, esito.msgErrore)
+            if (esito.msgErrore.isEmpty()) {
+                val notifica = notificationMapper.toNotification(fatturaArchivioDto)
+                notificationProducerService.inviaNotifica(listOf(notifica))
+                logger.info("Archiviazione SDI completata con successo per dcsId={}", fatturaArchivioDto.dcsId)
+            } else {
+                logger.warn("Archiviazione SDI con errori per dcsId={}: {}", fatturaArchivioDto.dcsId, esito.msgErrore)
+            }
+        } finally {
+            TenantContext.clear()
         }
     }
 
@@ -112,38 +116,42 @@ class ArchivioService(
         TenantContext.set(request.societa)
         logger.info("TenantContext impostato per società '{}'", request.societa)
 
-        val infoGeneriche = infoGenericheRepository.findByDcsId(request.dcsId)
-        if (infoGeneriche == null) {
-            val msg = "DCS_ID '${request.dcsId}' non trovato a sistema"
-            logger.warn(msg)
-            return EsitoArchiviazioneResponse(msgErrore = msg)
-        }
-
-        val docType = infoGeneriche.docType
-        logger.info("ArchivioService - dcsId={}, docType={}", request.dcsId, docType)
-
-        return when (docType) {
-            TipoDocumento.FATTURA -> {
-                logger.info("Instradamento esito verso FatturaService per dcsId={}", request.dcsId)
-                fatturaService.registraEsito(request)
-            }
-            TipoDocumento.MAIL -> {
-                logger.info("Instradamento esito verso DocumentService (MAIL) per dcsId={}", request.dcsId)
-                documentService.registraEsito(request)
-            }
-            TipoDocumento.RACCOMANDATE, TipoDocumento.POSTALE -> {
-                logger.info("Instradamento esito verso DocumentService (POSTA) per dcsId={}", request.dcsId)
-                documentService.registraEsito(request)
-            }
-            TipoDocumento.DOCUMENTI, TipoDocumento.ARCHIVIAZIONE -> {
-                logger.info("Instradamento esito verso DocumentService (ARCHIVIO) per dcsId={}", request.dcsId)
-                documentService.registraEsito(request)
-            }
-            null -> {
-                val msg = "DocType non valorizzato per DCS_ID '${request.dcsId}'"
+        try {
+            val infoGeneriche = infoGenericheRepository.findByDcsId(request.dcsId)
+            if (infoGeneriche == null) {
+                val msg = "DCS_ID '${request.dcsId}' non trovato a sistema"
                 logger.warn(msg)
                 return EsitoArchiviazioneResponse(msgErrore = msg)
             }
+
+            val docType = infoGeneriche.docType
+            logger.info("ArchivioService - dcsId={}, docType={}", request.dcsId, docType)
+
+            return when (docType) {
+                TipoDocumento.FATTURA -> {
+                    logger.info("Instradamento esito verso FatturaService per dcsId={}", request.dcsId)
+                    fatturaService.registraEsito(request)
+                }
+                TipoDocumento.MAIL -> {
+                    logger.info("Instradamento esito verso DocumentService (MAIL) per dcsId={}", request.dcsId)
+                    documentService.registraEsito(request)
+                }
+                TipoDocumento.RACCOMANDATE, TipoDocumento.POSTALE -> {
+                    logger.info("Instradamento esito verso DocumentService (POSTA) per dcsId={}", request.dcsId)
+                    documentService.registraEsito(request)
+                }
+                TipoDocumento.DOCUMENTI, TipoDocumento.ARCHIVIAZIONE -> {
+                    logger.info("Instradamento esito verso DocumentService (ARCHIVIO) per dcsId={}", request.dcsId)
+                    documentService.registraEsito(request)
+                }
+                null -> {
+                    val msg = "DocType non valorizzato per DCS_ID '${request.dcsId}'"
+                    logger.warn(msg)
+                    return EsitoArchiviazioneResponse(msgErrore = msg)
+                }
+            }
+        } finally {
+            TenantContext.clear()
         }
     }
 }

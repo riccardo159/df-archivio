@@ -98,19 +98,27 @@ class DocumentService(
     fun registraEsito(request: EsitoArchiviazioneRequest): EsitoArchiviazioneResponse {
         TenantContext.set(request.societa)
         logger.info("TenantContext impostato per società '{}'", request.societa)
-        return esitoArchiviazioneService.aggiornaStato(request)
+        try {
+            return esitoArchiviazioneService.aggiornaStato(request)
+        } finally {
+            TenantContext.clear()
+        }
     }
 
     private fun registraEsito(dcsId: String, societa: String, canale: String): EsitoArchiviazioneResponse {
         TenantContext.set(societa)
         logger.info("TenantContext impostato per società '{}'", societa)
-        val request = EsitoArchiviazioneRequest(
-            societa = societa,
-            canale = canale,
-            dcsId = dcsId,
-            stato = StatoDocumento.ARCHIVIATO,
-            dataEvento = Instant.now()
-        )
-        return esitoArchiviazioneService.aggiornaStato(request)
+        try {
+            val request = EsitoArchiviazioneRequest(
+                societa = societa,
+                canale = canale,
+                dcsId = dcsId,
+                stato = StatoDocumento.ARCHIVIATO,
+                dataEvento = Instant.now()
+            )
+            return esitoArchiviazioneService.aggiornaStato(request)
+        } finally {
+            TenantContext.clear()
+        }
     }
 }
