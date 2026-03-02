@@ -9,6 +9,7 @@ import com.acea.digitalflow.df_common.dto.ArchivioDto
 import com.acea.digitalflow.df_common.dto.ArchivioNotificationRequest
 import com.acea.digitalflow.df_common.dto.MailDto
 import com.acea.digitalflow.df_common.dto.PostaDto
+import com.acea.digitaflow.dfarchivio.schema.TenantContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
@@ -94,10 +95,15 @@ class DocumentService(
         }
     }
 
-    fun registraEsito(request: EsitoArchiviazioneRequest): EsitoArchiviazioneResponse =
-        esitoArchiviazioneService.aggiornaStato(request)
+    fun registraEsito(request: EsitoArchiviazioneRequest): EsitoArchiviazioneResponse {
+        TenantContext.set(request.societa)
+        logger.info("TenantContext impostato per società '{}'", request.societa)
+        return esitoArchiviazioneService.aggiornaStato(request)
+    }
 
     private fun registraEsito(dcsId: String, societa: String, canale: String): EsitoArchiviazioneResponse {
+        TenantContext.set(societa)
+        logger.info("TenantContext impostato per società '{}'", societa)
         val request = EsitoArchiviazioneRequest(
             societa = societa,
             canale = canale,

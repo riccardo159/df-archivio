@@ -5,6 +5,7 @@ import com.acea.digitaflow.dfarchivio.repository.InfoGenericheRepository
 import com.acea.digitaflow.dfarchivio.repository.StatoRepository
 import com.acea.digitaflow.dfarchivio.repository.TipologiaStatoRepository
 import com.acea.digitaflow.dfarchivio.request.EsitoArchiviazioneRequest
+import com.acea.digitaflow.dfarchivio.schema.TenantContext
 import com.acea.digitalflow.df_common.entity.Stato
 import com.acea.digitalflow.df_common.enums.SistemaCoinvolto
 import org.slf4j.LoggerFactory
@@ -20,20 +21,6 @@ class EsitoArchiviazioneService(
 
     private val logger = LoggerFactory.getLogger(EsitoArchiviazioneService::class.java)
 
-    companion object {
-        val SOCIETA_VALIDE = setOf(
-            "ATO2", "AAT5", "ACQU", "GORI", "GESE", "PUBL", "FIOR", "CGST", "UMBR"
-        )
-
-        val CANALI_VALIDI = setOf(
-            "POS", "PEC", "RAC", "EMA", "FAX", "ARC", "STA"
-        )
-
-        val STATI_VALIDI = setOf(
-            1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080
-        )
-    }
-
     @Transactional
     fun aggiornaStato(request: EsitoArchiviazioneRequest): EsitoArchiviazioneResponse {
         logger.info(
@@ -41,26 +28,8 @@ class EsitoArchiviazioneService(
             request.societa, request.canale, request.dcsId, request.stato, request.dataEvento
         )
 
-        // Validazione societa
-        if (request.societa.uppercase() !in SOCIETA_VALIDE) {
-            val msg = "Societa '${request.societa}' non valida. Valori ammessi: $SOCIETA_VALIDE"
-            logger.warn(msg)
-            return EsitoArchiviazioneResponse(msgErrore = msg)
-        }
-
-        // Validazione canale
-        if (request.canale !in CANALI_VALIDI) {
-            val msg = "Canale '${request.canale}' non tra quelli consentiti. Valori ammessi: $CANALI_VALIDI"
-            logger.warn(msg)
-            return EsitoArchiviazioneResponse(msgErrore = msg)
-        }
-
-        // Validazione stato
-        if (request.stato !in STATI_VALIDI) {
-            val msg = "Stato '${request.stato}' non tra quelli consentiti. Valori ammessi: $STATI_VALIDI"
-            logger.warn(msg)
-            return EsitoArchiviazioneResponse(msgErrore = msg)
-        }
+        TenantContext.set(request.societa)
+        logger.info("TenantContext impostato per società '{}' -> schema '{}'", request.societa, TenantContext.get())
 
         // Ricerca documento per dcsId (la societa e' determinata dallo schema multi-tenant)
         val infoGeneriche = infoGenericheRepository.findByDcsId(request.dcsId)

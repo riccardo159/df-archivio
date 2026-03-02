@@ -1,0 +1,52 @@
+package com.acea.digitaflow.dfarchivio.schema
+
+import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Component
+import java.sql.Connection
+import javax.sql.DataSource
+
+@Component
+class SchemaMultiTenantConnectionProvider(
+    private val dataSource: DataSource
+) : MultiTenantConnectionProvider<String> {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    override fun getAnyConnection(): Connection {
+        val connection = dataSource.connection
+        log.info("getAnyConnection")
+        connection.createStatement().use {
+            it.execute("""SET search_path TO "aat2", public""")
+        }
+        return connection
+    }
+
+
+    override fun releaseAnyConnection(connection: Connection) {
+        connection.close()
+    }
+
+    override fun getConnection(tenantIdentifier: String): Connection {
+        log.info("Using tenant/schema={}", tenantIdentifier)
+        val connection = getAnyConnection()
+        connection.createStatement().use {
+            it.execute("""SET search_path TO "$tenantIdentifier"""")
+        }
+        return connection
+    }
+
+    override fun releaseConnection(tenantIdentifier: String, connection: Connection) {
+        connection.createStatement().use {
+            it.execute("""SET search_path TO public""")
+        }
+        connection.close()
+    }
+
+    override fun supportsAggressiveRelease(): Boolean = false
+
+    override fun isUnwrappableAs(unwrapType: Class<*>): Boolean = false
+
+    override fun <X : Any> unwrap(unwrapType: Class<X>): X {
+        throw UnsupportedOperationException("Unwrap not supported")
+    }
+}

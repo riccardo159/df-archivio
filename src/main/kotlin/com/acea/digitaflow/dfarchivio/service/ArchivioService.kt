@@ -11,6 +11,7 @@ import com.acea.digitalflow.df_common.dto.ArchivioDto
 import com.acea.digitalflow.df_common.dto.MailDto
 import com.acea.digitalflow.df_common.dto.PostaDto
 import com.acea.digitaflow.dfarchivio.dto.FatturaArchivioDto
+import com.acea.digitaflow.dfarchivio.schema.TenantContext
 import com.acea.digitalflow.df_common.enums.TipoDocumento
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -48,6 +49,9 @@ class ArchivioService(
 
     fun elaboraSdi(fatturaArchivioDto: FatturaArchivioDto) {
         logger.info("ArchivioService - elaboraSdi dcsId={}, esitoSdi={}", fatturaArchivioDto.dcsId, fatturaArchivioDto.esitoSdi)
+
+        TenantContext.set(fatturaArchivioDto.societa)
+        logger.info("TenantContext impostato per società '{}'", fatturaArchivioDto.societa)
 
         val fattura = fatturaRepository.findByInfoGenericheDcsId(fatturaArchivioDto.dcsId)
         if (fattura == null) {
@@ -104,6 +108,9 @@ class ArchivioService(
 
     fun registraEsito(request: EsitoArchiviazioneRequest): EsitoArchiviazioneResponse {
         logger.info("ArchivioService - registraEsito dcsId={}, canale={}", request.dcsId, request.canale)
+
+        TenantContext.set(request.societa)
+        logger.info("TenantContext impostato per società '{}'", request.societa)
 
         val infoGeneriche = infoGenericheRepository.findByDcsId(request.dcsId)
         if (infoGeneriche == null) {
