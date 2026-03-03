@@ -4,12 +4,14 @@ import com.acea.digitaflow.dfarchivio.config.StatoDocumento
 import com.acea.digitaflow.dfarchivio.dto.EsitoArchiviazioneResponse
 import com.acea.digitaflow.dfarchivio.mapper.NotificationMapper
 import com.acea.digitaflow.dfarchivio.producer.NotificationProducerService
+import com.acea.digitaflow.dfarchivio.repository.InfoGenericheRepository
 import com.acea.digitaflow.dfarchivio.request.EsitoArchiviazioneRequest
+import com.acea.digitaflow.dfarchivio.schema.TenantContext
 import com.acea.digitalflow.df_common.dto.ArchivioDto
 import com.acea.digitalflow.df_common.dto.ArchivioNotificationRequest
 import com.acea.digitalflow.df_common.dto.MailDto
 import com.acea.digitalflow.df_common.dto.PostaDto
-import com.acea.digitaflow.dfarchivio.schema.TenantContext
+import com.acea.digitalflow.df_common.entity.InfoGeneriche
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
@@ -18,80 +20,112 @@ import java.time.Instant
 class DocumentService(
     private val notificationMapper: NotificationMapper,
     private val esitoArchiviazioneService: EsitoArchiviazioneService,
-    private val notificationProducerService: NotificationProducerService
+    private val notificationProducerService: NotificationProducerService,
+    private val infoGenericheRepository: InfoGenericheRepository
 ) {
 
     private val logger = LoggerFactory.getLogger(DocumentService::class.java)
 
-    fun elaboraArchivio(archivi: List<ArchivioDto>) {
-        logger.info("Elaborazione Archivio - count={}", archivi.size)
+    fun elaboraArchivio(archivi: List<ArchivioDto>) =
+        elaboraGenerico(
+            items = archivi,
+            canale = "ARC",
+            dcsExtractor = { it.dcsId },
+            societaExtractor = { it.societa },
+            mapperCall = { dto, info -> notificationMapper.toNotification(dto, info) }
+        )
+
+    fun elaboraMail(mails: List<MailDto>) =
+        elaboraGenerico(
+            items = mails,
+            canale = "EMA",
+            dcsExtractor = { it.dcsId },
+            societaExtractor = { it.societa },
+            mapperCall = { dto, info -> notificationMapper.toNotification(dto, info) }
+        )
+
+    fun elaboraPosta(poste: List<PostaDto>) =
+        elaboraGenerico(
+            items = poste,
+            canale = "POS",
+            dcsExtractor = { it.dcsId },
+            societaExtractor = { it.societa },
+            mapperCall = { dto, info -> notificationMapper.toNotification(dto, info) }
+        )
+
+
+    private fun <T> elaboraGenerico(
+        items: List<T>,
+        canale: String,
+        dcsExtractor: (T) -> String,
+        societaExtractor: (T) -> String,
+        mapperCall: (T, InfoGeneriche) -> ArchivioNotificationRequest
+    ) {
+
+        logger.info("Elaborazione {} - count={}", canale, items.size)
+
+        if (items.isEmpty()) return
 
         val notifiche = mutableListOf<ArchivioNotificationRequest>()
 
-        archivi.forEach { archivio ->
+        val dcsIds = items
+            .map { dcsExtractor(it) }
+            .distinct()
+
+        val infoByDcsId = infoGenericheRepository
+            .findByDcsIdIn(dcsIds)
+            .associateBy { it.dcsId }
+
+        items.forEach { item ->
             try {
-                val esito = registraEsito(archivio.dcsId, archivio.societa, "ARC")
+
+                val dcsId = dcsExtractor(item)
+                val societa = societaExtractor(item)
+
+                val info = infoByDcsId[dcsId]
+
+                if (info == null) {
+                    logger.warn("InfoGeneriche non trovata per dcsId={}", dcsId)
+                    return@forEach
+                }
+
+                val esito = registraEsito(dcsId, societa, canale)
 
                 if (esito.msgErrore.isEmpty()) {
-                    notifiche.add(notificationMapper.toNotification(archivio))
+                    notifiche.add(mapperCall(item, info))
                 } else {
-                    logger.warn("Esito negativo per archivio dcsId={}: {}", archivio.dcsId, esito.msgErrore)
+                    logger.warn("Esito negativo per dcsId={}: {}", dcsId, esito.msgErrore)
                 }
+
             } catch (e: Exception) {
-                logger.error("Errore elaborazione archivio dcsId={}: {}", archivio.dcsId, e.message, e)
+                logger.error("Errore elaborazione dcsId={}", dcsExtractor(item), e)
             }
         }
 
         if (notifiche.isNotEmpty()) {
             notificationProducerService.inviaNotifica(notifiche)
         }
+
+        logger.info("Elaborazione {} completata - notifiche={}", canale, notifiche.size)
     }
 
-    fun elaboraMail(mails: List<MailDto>) {
-        logger.info("Elaborazione Mail - count={}", mails.size)
 
-        val notifiche = mutableListOf<ArchivioNotificationRequest>()
+    private fun registraEsito(dcsId: String, societa: String, canale: String)
+            : EsitoArchiviazioneResponse {
 
-        mails.forEach { mail ->
-            try {
-                val esito = registraEsito(mail.dcsId, mail.societa, "EMA")
-
-                if (esito.msgErrore.isEmpty()) {
-                    notifiche.add(notificationMapper.toNotification(mail))
-                } else {
-                    logger.warn("Esito negativo per mail dcsId={}: {}", mail.dcsId, esito.msgErrore)
-                }
-            } catch (e: Exception) {
-                logger.error("Errore elaborazione mail dcsId={}: {}", mail.dcsId, e.message, e)
-            }
-        }
-
-        if (notifiche.isNotEmpty()) {
-            notificationProducerService.inviaNotifica(notifiche)
-        }
-    }
-
-    fun elaboraPosta(poste: List<PostaDto>) {
-        logger.info("Elaborazione Posta - count={}", poste.size)
-
-        val notifiche = mutableListOf<ArchivioNotificationRequest>()
-
-        poste.forEach { posta ->
-            try {
-                val esito = registraEsito(posta.dcsId, posta.societa, "POS")
-
-                if (esito.msgErrore.isEmpty()) {
-                    notifiche.add(notificationMapper.toNotification(posta))
-                } else {
-                    logger.warn("Esito negativo per posta dcsId={}: {}", posta.dcsId, esito.msgErrore)
-                }
-            } catch (e: Exception) {
-                logger.error("Errore elaborazione posta dcsId={}: {}", posta.dcsId, e.message, e)
-            }
-        }
-
-        if (notifiche.isNotEmpty()) {
-            notificationProducerService.inviaNotifica(notifiche)
+        TenantContext.set(societa)
+        try {
+            return esitoArchiviazioneService.aggiornaStato(
+                EsitoArchiviazioneRequest(
+                    societa = societa,
+                    canale = canale,
+                    dcsId = dcsId,
+                    stato = StatoDocumento.ARCHIVIATO,
+                    dataEvento = Instant.now()
+                )
+            )
+        } finally {
+            TenantContext.clear()
         }
     }
 
@@ -105,20 +139,4 @@ class DocumentService(
         }
     }
 
-    private fun registraEsito(dcsId: String, societa: String, canale: String): EsitoArchiviazioneResponse {
-        TenantContext.set(societa)
-        logger.info("TenantContext impostato per società '{}'", societa)
-        try {
-            val request = EsitoArchiviazioneRequest(
-                societa = societa,
-                canale = canale,
-                dcsId = dcsId,
-                stato = StatoDocumento.ARCHIVIATO,
-                dataEvento = Instant.now()
-            )
-            return esitoArchiviazioneService.aggiornaStato(request)
-        } finally {
-            TenantContext.clear()
-        }
-    }
 }

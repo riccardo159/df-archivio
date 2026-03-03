@@ -8,4 +8,7 @@ import org.springframework.stereotype.Repository
 interface InfoGenericheRepository : JpaRepository<InfoGeneriche, Long> {
 
     fun findByDcsId(dcsId: String): InfoGeneriche?
+
+    fun findByDcsIdIn(dcsIds: List<String>): List<InfoGeneriche>
+
 }
