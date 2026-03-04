@@ -61,60 +61,66 @@ class DocumentService(
         societaExtractor: (T) -> String,
         mapperCall: (T, InfoGeneriche) -> ArchivioNotificationRequest
     ) {
+        if (items.isEmpty()) {
+            logger.info("Elaborazione {} - nessun elemento da processare", canale)
+            return
+        }
 
-        logger.info("Elaborazione {} - count={}", canale, items.size)
+        val itemsBySocieta = items.groupBy(societaExtractor)
 
-        if (items.isEmpty()) return
+        itemsBySocieta.forEach { (societa, groupItems) ->
 
-        val notifiche = mutableListOf<ArchivioNotificationRequest>()
-
-        val dcsIds = items
-            .map { dcsExtractor(it) }
-            .distinct()
-
-        val infoByDcsId = infoGenericheRepository
-            .findByDcsIdIn(dcsIds)
-            .associateBy { it.dcsId }
-
-        items.forEach { item ->
+            TenantContext.set(societa)
             try {
+                logger.info("Elaborazione {} per società '{}' - count={}", canale, societa, groupItems.size)
 
-                val dcsId = dcsExtractor(item)
-                val societa = societaExtractor(item)
+                val notifiche = mutableListOf<ArchivioNotificationRequest>()
 
-                val info = infoByDcsId[dcsId]
+                val dcsIds = groupItems
+                    .map { dcsExtractor(it) }
+                    .distinct()
 
-                if (info == null) {
-                    logger.warn("InfoGeneriche non trovata per dcsId={}", dcsId)
-                    return@forEach
+                val infoByDcsId = infoGenericheRepository
+                    .findByDcsIdIn(dcsIds)
+                    .associateBy { it.dcsId }
+
+                groupItems.forEach { item ->
+                    try {
+                        val dcsId = dcsExtractor(item)
+                        val info = infoByDcsId[dcsId]
+
+                        if (info == null) {
+                            logger.warn("InfoGeneriche non trovata per dcsId={}", dcsId)
+                            return@forEach
+                        }
+
+                        val esito = registraEsito(dcsId, societa, canale)
+                        if (esito.msgErrore.isEmpty()) {
+                            notifiche.add(mapperCall(item, info))
+                        } else {
+                            logger.warn("Esito negativo per dcsId={}: {}", dcsId, esito.msgErrore)
+                        }
+
+                    } catch (e: Exception) {
+                        logger.error("Errore elaborazione dcsId={}", dcsExtractor(item), e)
+                    }
                 }
 
-                val esito = registraEsito(dcsId, societa, canale)
-
-                if (esito.msgErrore.isEmpty()) {
-                    notifiche.add(mapperCall(item, info))
-                } else {
-                    logger.warn("Esito negativo per dcsId={}: {}", dcsId, esito.msgErrore)
+                if (notifiche.isNotEmpty()) {
+                    notificationProducerService.inviaNotifica(notifiche)
                 }
 
-            } catch (e: Exception) {
-                logger.error("Errore elaborazione dcsId={}", dcsExtractor(item), e)
+                logger.info("Elaborazione {} per società '{}' completata - notifiche={}", canale, societa, notifiche.size)
+
+            } finally {
+                TenantContext.clear()
             }
         }
-
-        if (notifiche.isNotEmpty()) {
-            notificationProducerService.inviaNotifica(notifiche)
-        }
-
-        logger.info("Elaborazione {} completata - notifiche={}", canale, notifiche.size)
     }
 
 
     private fun registraEsito(dcsId: String, societa: String, canale: String)
             : EsitoArchiviazioneResponse {
-
-        TenantContext.set(societa)
-        try {
             return esitoArchiviazioneService.aggiornaStato(
                 EsitoArchiviazioneRequest(
                     societa = societa,
@@ -124,9 +130,6 @@ class DocumentService(
                     dataEvento = Instant.now()
                 )
             )
-        } finally {
-            TenantContext.clear()
-        }
     }
 
     fun registraEsito(request: EsitoArchiviazioneRequest): EsitoArchiviazioneResponse {

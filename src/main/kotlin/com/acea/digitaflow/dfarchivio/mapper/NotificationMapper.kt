@@ -22,7 +22,6 @@ interface NotificationMapper {
     @Mapping(target = "campoDifferito", ignore = true)
     fun toNotification(archivio: ArchivioDto, infoGeneriche: InfoGeneriche): ArchivioNotificationRequest
 
-    // Per MailDto
     @Mapping(target = "tipoCanaleSecondario", source = "infoGeneriche.canaleSecondario")
     @Mapping(target = "flgCanaleSecondario", source = "infoGeneriche.flgCanaleSecondario")
     @Mapping(target = "tipoDocumento", source = "infoGeneriche.docType")
@@ -33,7 +32,6 @@ interface NotificationMapper {
     @Mapping(target = "campoDifferito", ignore = true)
     fun toNotification(mail: MailDto, infoGeneriche: InfoGeneriche): ArchivioNotificationRequest
 
-    // Per PostaDto
     @Mapping(target = "tipoCanaleSecondario", source = "infoGeneriche.canaleSecondario")
     @Mapping(target = "flgCanaleSecondario", source = "infoGeneriche.flgCanaleSecondario")
     @Mapping(target = "tipoDocumento", source = "infoGeneriche.docType")
