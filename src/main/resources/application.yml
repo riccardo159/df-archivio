@@ -3,18 +3,22 @@ spring:
     name: df-archivio
 
   datasource:
-    url: jdbc:postgresql://localhost:5431/ms_infasamento
-    username: ms_infasamento
-    password: secret
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5431}/${POSTGRES_DB:ms_infasamento}
+    username: ${POSTGRES_USER:ms_infasamento}
+    password: ${POSTGRES_PASSWORD:secret}
+
   jpa:
     open-in-view: false
+    show-sql: false
+
     hibernate:
       ddl-auto: validate
-      multiTenancy: SCHEMA
-    show-sql: false
+
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        multiTenancy: SCHEMA
+        default_schema: ${FLYWAY_DEFAULT_SCHEMA:aat2}
         jdbc:
           batch_size: 10
         order_inserts: true

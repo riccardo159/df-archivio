@@ -2,23 +2,21 @@ package com.acea.digitaflow.dfarchivio.schema
 
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.sql.Connection
 import javax.sql.DataSource
 
 @Component
 class SchemaMultiTenantConnectionProvider(
-    private val dataSource: DataSource
+    private val dataSource: DataSource,
+    @Value("\${spring.flyway.default-schema:aat2}")
+    private val defaultSchema: String
 ) : MultiTenantConnectionProvider<String> {
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun getAnyConnection(): Connection {
-        val connection = dataSource.connection
-        log.info("getAnyConnection")
-        connection.createStatement().use {
-            it.execute("""SET search_path TO "aat2", public""")
-        }
-        return connection
+        return dataSource.connection
     }
 
 
@@ -37,7 +35,7 @@ class SchemaMultiTenantConnectionProvider(
 
     override fun releaseConnection(tenantIdentifier: String, connection: Connection) {
         connection.createStatement().use {
-            it.execute("""SET search_path TO public""")
+            it.execute("""SET search_path TO "$defaultSchema"""")
         }
         connection.close()
     }
