@@ -10,8 +10,6 @@ import javax.sql.DataSource
 @Component
 class SchemaMultiTenantConnectionProvider(
     private val dataSource: DataSource,
-    @Value("\${spring.flyway.default-schema:aat2}")
-    private val defaultSchema: String
 ) : MultiTenantConnectionProvider<String> {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -35,11 +33,10 @@ class SchemaMultiTenantConnectionProvider(
 
     override fun releaseConnection(tenantIdentifier: String, connection: Connection) {
         connection.createStatement().use {
-            it.execute("""SET search_path TO "$defaultSchema"""")
+            it.execute("""SET search_path TO tenantIdentifier""")
         }
         connection.close()
     }
-
     override fun supportsAggressiveRelease(): Boolean = false
 
     override fun isUnwrappableAs(unwrapType: Class<*>): Boolean = false
