@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: df-archivio-config
+  namespace: idrico-svil-docsflow
+data:
+  SERVER_PORT: "10092"
+  POSTGRES_HOST: docsflow-postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: ms_infasamento
+  POSTGRES_USER: ms_infasamento
+  POSTGRES_PASSWORD: secret
+  KAFKA_BOOTSTRAP_SERVERS: broker-0.brokers.idrico-kafka.svc.cluster.local:9092
+  FLYWAY_DEFAULT_SCHEMA: aat2

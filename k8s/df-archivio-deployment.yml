@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: df-archivio-deployment 
+  namespace: idrico-svil-docsflow
+  labels:
+    app: df-archivio
+spec:
+  selector:
+    matchLabels:
+      app: df-archivio
+  replicas: 1 
+  template:
+    metadata:
+      labels:
+        app: df-archivio
+        env: svil
+        societa: idrico
+        logstash_queue: "ae.qb.idr.mw.sfdc.ebdm.logtrace.elastic"
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - df-archivio
+            topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: node.kubernetes.io/instance-type
+                  operator: In
+                  values:
+                  - c2d-highmem-4
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: df-archivio
+        image: "eu.gcr.io/aceabwceidriconoprod001/idrico/docs-flow/df-archivio:0.0.1"
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "250m"
+          requests:
+            memory: "1Gi"
+            cpu: "250m"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 10092
+          protocol: TCP
+        env:
+        - name: SERVER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: SERVER_PORT
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: POSTGRES_DB
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: POSTGRES_HOST
+        - name: POSTGRES_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: POSTGRES_PORT
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: POSTGRES_PASSWORD
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: KAFKA_BOOTSTRAP_SERVERS
+        - name: FLYWAY_DEFAULT_SCHEMA
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: FLYWAY_DEFAULT_SCHEMA
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: 10092
+          initialDelaySeconds: 300
+          timeoutSeconds: 10
+          periodSeconds: 30
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 10092
+          initialDelaySeconds: 30
+          timeoutSeconds: 10
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 10092
+          initialDelaySeconds: 30
+          timeoutSeconds: 10
+          periodSeconds: 30
+          successThreshold: 1
+          failureThreshold: 3
