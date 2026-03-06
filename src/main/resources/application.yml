@@ -31,12 +31,12 @@ spring:
 
 kafka:
   topics:
-    archivio: ${KAFKA_ARCHIVIO_TOPIC:infasamento-archivio-archivio-topic}
-    mail: ${KAFKA_MAIL_TOPIC:infasamento-archivio-mail-topic}
-    posta: ${KAFKA_POSTA_TOPIC:infasamento-archivio-posta-topic}
-    sdi: ${KAFKA_SDI_TOPIC:sdi.archivio}
+    archivio: ${KAFKA_ARCHIVIO_TOPIC:df-infasamento-archivio-archivio-topic}
+    mail: ${KAFKA_MAIL_TOPIC:df-infasamento-archivio-mail-topic}
+    posta: ${KAFKA_POSTA_TOPIC:df-infasamento-archivio-posta-topic}
+    sdi: ${KAFKA_SDI_TOPIC:df-sdi.archivio}
   notification:
-    topic: ${KAFKA_NOTIFICATION_TOPIC:archivio-notification-topic}
+    topic: ${KAFKA_NOTIFICATION_TOPIC:df-archivio-notification-topic}
 
 server:
   port: ${SERVER_PORT:8087}
