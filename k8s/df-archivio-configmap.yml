@@ -11,4 +11,3 @@ data:
   POSTGRES_USER: ms_infasamento
   POSTGRES_PASSWORD: secret
   KAFKA_BOOTSTRAP_SERVERS: broker-0.brokers.idrico-kafka.svc.cluster.local:9092
-  FLYWAY_DEFAULT_SCHEMA: aat2
