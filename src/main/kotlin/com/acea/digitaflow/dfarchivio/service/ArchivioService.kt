@@ -1,17 +1,18 @@
 package com.acea.digitaflow.dfarchivio.service
 
+import com.acea.digitaflow.dfarchivio.config.StatoDocumento
 import com.acea.digitaflow.dfarchivio.dto.EsitoArchiviazioneResponse
-import com.acea.digitaflow.dfarchivio.mapper.NotificationMapper
 import com.acea.digitaflow.dfarchivio.producer.NotificationProducerService
 import com.acea.digitaflow.dfarchivio.repository.FatturaRepository
 import com.acea.digitaflow.dfarchivio.repository.InfoGenericheRepository
 import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
 import com.acea.digitaflow.dfarchivio.request.EsitoArchiviazioneRequest
-import com.acea.digitalflow.df_common.dto.ArchivioDto
-import com.acea.digitalflow.df_common.dto.MailDto
-import com.acea.digitalflow.df_common.dto.PostaDto
+import com.acea.digitalflow.df_common.dto.ArchivioNotificationRequest
 import com.acea.digitaflow.dfarchivio.dto.FatturaArchivioDto
 import com.acea.digitaflow.dfarchivio.schema.TenantContext
+import com.acea.digitalflow.df_common.entity.InfoGeneriche
+import com.acea.digitalflow.df_common.enums.Canale
+import com.acea.digitalflow.df_common.enums.CanaleSecondario
 import com.acea.digitalflow.df_common.enums.TipoDocumento
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -22,28 +23,10 @@ class ArchivioService(
     private val fatturaService: FatturaService,
     private val fatturaRepository: FatturaRepository,
     private val infoGenericheRepository: InfoGenericheRepository,
-    private val notificationMapper: NotificationMapper,
     private val notificationProducerService: NotificationProducerService
 ) {
 
     private val logger = LoggerFactory.getLogger(ArchivioService::class.java)
-
-    //Flussi Kafka (documenti)
-
-    fun elaboraArchivio(archivi: List<ArchivioDto>) {
-        logger.info("ArchivioService - elaboraArchivio count={}", archivi.size)
-        documentService.elaboraArchivio(archivi)
-    }
-
-    fun elaboraMail(mails: List<MailDto>) {
-        logger.info("ArchivioService - elaboraMail count={}", mails.size)
-        documentService.elaboraMail(mails)
-    }
-
-    fun elaboraPosta(poste: List<PostaDto>) {
-        logger.info("ArchivioService - elaboraPosta count={}", poste.size)
-        documentService.elaboraPosta(poste)
-    }
 
     //Flusso fatture SDI (consumer Kafka -> DB -> archiviazione DMS)
 
@@ -79,8 +62,6 @@ class ArchivioService(
             val esito = fatturaService.archiviazione(archivioRequest)
 
             if (esito.msgErrore.isEmpty()) {
-                val notifica = notificationMapper.toNotification(fatturaArchivioDto)
-                notificationProducerService.inviaNotifica(listOf(notifica))
                 logger.info("Archiviazione SDI completata con successo per dcsId={}", fatturaArchivioDto.dcsId)
             } else {
                 logger.warn("Archiviazione SDI con errori per dcsId={}: {}", fatturaArchivioDto.dcsId, esito.msgErrore)
@@ -130,15 +111,27 @@ class ArchivioService(
             return when (docType) {
                 TipoDocumento.FATTURA -> {
                     logger.info("Instradamento esito verso FatturaService per dcsId={}", request.dcsId)
-                    fatturaService.registraEsito(request)
+                    val esito = fatturaService.registraEsito(request)
+                    if (esito.msgErrore.isEmpty() && request.stato == StatoDocumento.ARCHIVIATO) {
+                        inviaNotifica(infoGeneriche, docType, request)
+                    }
+                    esito
                 }
                 TipoDocumento.MAIL -> {
                     logger.info("Instradamento esito verso DocumentService (MAIL) per dcsId={}", request.dcsId)
-                    documentService.registraEsito(request)
+                    val esito = documentService.registraEsito(request)
+                    if (esito.msgErrore.isEmpty() && request.stato == StatoDocumento.ARCHIVIATO) {
+                        inviaNotifica(infoGeneriche, docType, request)
+                    }
+                    esito
                 }
                 TipoDocumento.RACCOMANDATE, TipoDocumento.POSTALE -> {
                     logger.info("Instradamento esito verso DocumentService (POSTA) per dcsId={}", request.dcsId)
-                    documentService.registraEsito(request)
+                    val esito = documentService.registraEsito(request)
+                    if (esito.msgErrore.isEmpty() && request.stato == StatoDocumento.ARCHIVIATO) {
+                        inviaNotifica(infoGeneriche, docType, request)
+                    }
+                    esito
                 }
                 TipoDocumento.DOCUMENTI, TipoDocumento.ARCHIVIAZIONE -> {
                     logger.info("Instradamento esito verso DocumentService (ARCHIVIO) per dcsId={}", request.dcsId)
@@ -155,5 +148,32 @@ class ArchivioService(
         }
     }
 
+    private fun inviaNotifica(
+        infoGeneriche: InfoGeneriche,
+        docType: TipoDocumento,
+        request: EsitoArchiviazioneRequest
+    ) {
+        val canaleSecondario = infoGeneriche.canaleSecondario
+            ?: valorizzaCanaleSecondario(infoGeneriche.canale)
+
+        val notifica = ArchivioNotificationRequest(
+            tipoCanaleSecondario = canaleSecondario,
+            flgCanaleSecondario = infoGeneriche.flgCanaleSecondario ?: false,
+            tipoDocumento = docType,
+            datiDocumento = request,
+            societa = request.societa,
+            dcsId = request.dcsId
+        )
+        notificationProducerService.inviaNotifica(listOf(notifica))
+        logger.info("Notifica inviata per {} archiviato dcsId={}, canaleSecondario={}", docType, request.dcsId, canaleSecondario)
+    }
+
+    private fun valorizzaCanaleSecondario(canale: Canale?): CanaleSecondario {
+        return when (canale) {
+            Canale.EMA, Canale.PEC -> CanaleSecondario.MAIL
+            Canale.RAC, Canale.POS, Canale.FAX -> CanaleSecondario.STAMPATORE
+            else -> CanaleSecondario.STAMPATORE
+        }
+    }
 
 }

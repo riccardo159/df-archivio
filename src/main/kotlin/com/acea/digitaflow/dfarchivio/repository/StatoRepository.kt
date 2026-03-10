@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository
 interface StatoRepository : JpaRepository<Stato, Long> {
 
     fun findByDcsIdAndTipologiaStatoCodStato(dcsId: String, codStato: Long): Stato?
+
+    fun findByDcsIdAndFlagAttivoTrue(dcsId: String): List<Stato>
 }

@@ -57,6 +57,19 @@ class EsitoArchiviazioneService(
             return EsitoArchiviazioneResponse(msgErrore = msg)
         }
 
+        // Disattiva gli stati attivi precedenti per questo dcsId
+        val statiAttivi = statoRepository.findByDcsIdAndFlagAttivoTrue(request.dcsId)
+        if (statiAttivi.isNotEmpty()) {
+            logger.info(
+                "Disattivazione di {} stati attivi precedenti per DCS_ID '{}'",
+                statiAttivi.size, request.dcsId
+            )
+            statiAttivi.forEach { stato ->
+                stato.flagAttivo = false
+                statoRepository.save(stato)
+            }
+        }
+
         // Salvataggio nuovo stato
         val nuovoStato = Stato(
             dcsId = request.dcsId,

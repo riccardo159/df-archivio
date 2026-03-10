@@ -30,6 +30,8 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
 kafka:
+  topics:
+    sdi: ${KAFKA_SDI_TOPIC:df-sdi.archivio}
   notification:
     topic: ${KAFKA_NOTIFICATION_TOPIC:df-archivio-notification-topic}
 
