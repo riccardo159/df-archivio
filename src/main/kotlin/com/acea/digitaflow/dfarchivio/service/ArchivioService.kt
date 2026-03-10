@@ -2,14 +2,14 @@ package com.acea.digitaflow.dfarchivio.service
 
 import com.acea.digitaflow.dfarchivio.config.StatoDocumento
 import com.acea.digitaflow.dfarchivio.dto.EsitoArchiviazioneResponse
+import com.acea.digitaflow.dfarchivio.dto.FatturaArchivioDto
 import com.acea.digitaflow.dfarchivio.producer.NotificationProducerService
 import com.acea.digitaflow.dfarchivio.repository.FatturaRepository
 import com.acea.digitaflow.dfarchivio.repository.InfoGenericheRepository
 import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
 import com.acea.digitaflow.dfarchivio.request.EsitoArchiviazioneRequest
-import com.acea.digitalflow.df_common.dto.ArchivioNotificationRequest
-import com.acea.digitaflow.dfarchivio.dto.FatturaArchivioDto
 import com.acea.digitaflow.dfarchivio.schema.TenantContext
+import com.acea.digitalflow.df_common.dto.ArchivioNotificationRequest
 import com.acea.digitalflow.df_common.entity.InfoGeneriche
 import com.acea.digitalflow.df_common.enums.Canale
 import com.acea.digitalflow.df_common.enums.CanaleSecondario
@@ -31,7 +31,11 @@ class ArchivioService(
     //Flusso fatture SDI (consumer Kafka -> DB -> archiviazione DMS)
 
     fun elaboraSdi(fatturaArchivioDto: FatturaArchivioDto) {
-        logger.info("ArchivioService - elaboraSdi dcsId={}, esitoSdi={}", fatturaArchivioDto.dcsId, fatturaArchivioDto.esitoSdi)
+        logger.info(
+            "ArchivioService - elaboraSdi dcsId={}, esitoSdi={}",
+            fatturaArchivioDto.dcsId,
+            fatturaArchivioDto.esitoSdi
+        )
 
         TenantContext.set(fatturaArchivioDto.societa)
         logger.info("TenantContext impostato per società '{}'", fatturaArchivioDto.societa)
@@ -117,6 +121,7 @@ class ArchivioService(
                     }
                     esito
                 }
+
                 TipoDocumento.MAIL -> {
                     logger.info("Instradamento esito verso DocumentService (MAIL) per dcsId={}", request.dcsId)
                     val esito = documentService.registraEsito(request)
@@ -125,6 +130,7 @@ class ArchivioService(
                     }
                     esito
                 }
+
                 TipoDocumento.RACCOMANDATE, TipoDocumento.POSTALE -> {
                     logger.info("Instradamento esito verso DocumentService (POSTA) per dcsId={}", request.dcsId)
                     val esito = documentService.registraEsito(request)
@@ -133,10 +139,12 @@ class ArchivioService(
                     }
                     esito
                 }
+
                 TipoDocumento.DOCUMENTI, TipoDocumento.ARCHIVIAZIONE -> {
                     logger.info("Instradamento esito verso DocumentService (ARCHIVIO) per dcsId={}", request.dcsId)
                     documentService.registraEsito(request)
                 }
+
                 null -> {
                     val msg = "DocType non valorizzato per DCS_ID '${request.dcsId}'"
                     logger.warn(msg)
@@ -165,12 +173,18 @@ class ArchivioService(
             dcsId = request.dcsId
         )
         notificationProducerService.inviaNotifica(listOf(notifica))
-        logger.info("Notifica inviata per {} archiviato dcsId={}, canaleSecondario={}", docType, request.dcsId, canaleSecondario)
+        logger.info(
+            "Notifica inviata per {} archiviato dcsId={}, canaleSecondario={}",
+            docType,
+            request.dcsId,
+            canaleSecondario
+        )
     }
 
     private fun valorizzaCanaleSecondario(canale: Canale?): CanaleSecondario {
         return when (canale) {
-            Canale.EMA, Canale.PEC -> CanaleSecondario.MAIL
+            Canale.EMA -> CanaleSecondario.MAIL
+            Canale.PEC -> CanaleSecondario.PEC
             Canale.RAC, Canale.POS, Canale.FAX -> CanaleSecondario.STAMPATORE
             else -> CanaleSecondario.STAMPATORE
         }
