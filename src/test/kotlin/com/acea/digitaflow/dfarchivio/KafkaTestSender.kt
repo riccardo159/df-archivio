@@ -7,10 +7,12 @@ import com.acea.digitalflow.df_common.enums.CanaleSecondario
 import com.acea.digitalflow.df_common.enums.TipoDocumento
 import com.acea.digitalflow.df_common.enums.TipoMail
 import org.springframework.boot.CommandLineRunner
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import java.time.Instant
 
 @Component
+@Profile("kafka-test")
 class KafkaTestSender(
 
     private val notificationProducerService: NotificationProducerService
@@ -56,7 +58,7 @@ class KafkaTestSender(
             tipoCanaleSecondario = CanaleSecondario.MAIL,
             flgCanaleSecondario = true,
             tipoDocumento = TipoDocumento.FATTURA,
-            datiDocumento =null ,
+            datiDocumento = Object(),
             societa = "aat5",
             dcsId = "6562321g00510000DOC_2026_001111",
             testo = "Test invio kafka",
@@ -68,7 +70,7 @@ class KafkaTestSender(
             tipoCanaleSecondario = CanaleSecondario.STAMPATORE,
             flgCanaleSecondario = true,
             tipoDocumento = TipoDocumento.FATTURA,
-            datiDocumento =null ,
+            datiDocumento = Object(),
             societa = "aat5",
             dcsId = "6562321g00510000DOC_2026_001111",
             testo = "Test invio kafka",

@@ -1,7 +1,7 @@
 # df-archivio - Microservizio per gestione archivio documenti
 services:
   df-archivio:
-    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.2
+    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.3
     container_name: df-archivio
     restart: unless-stopped
     ports:
@@ -17,6 +17,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
       # Kafka
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:29092}
+      # Hibernate - auto-create tables in dev
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # Gradle
       GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.configureondemand=true"
       GRADLE_USER_HOME: /root/.gradle
