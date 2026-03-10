@@ -2,9 +2,11 @@ package com.acea.digitaflow.dfarchivio
 
 import com.acea.digitaflow.dfarchivio.service.SmbService
 import org.springframework.boot.CommandLineRunner
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 
 @Component
+@Profile("smb-test")
 class SmbTestRunner(
     private val smbService: SmbService
 ) : CommandLineRunner {

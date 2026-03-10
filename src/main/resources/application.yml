@@ -53,22 +53,3 @@ df-archivio:
   expected-api-key: test
   allowed-users:
     - admin
-
-# Configurazione NFS Share per quadratura documenti
-quadratura:
-  nfs:
-    enabled: ${NFS_ENABLED:true}
-    server: ${NFS_SERVER:localhost}
-    port: ${NFS_PORT:2049}
-    share-path: ${NFS_SHARE_PATH:/shared}
-    mount-path: ${NFS_MOUNT_PATH:/mnt/nfs-share}
-    connection-timeout: ${NFS_CONNECTION_TIMEOUT:30000}
-    retry-attempts: ${NFS_RETRY_ATTEMPTS:3}
-    retry-delay: ${NFS_RETRY_DELAY:5000}
-    document-paths:
-      dms-path: ${NFS_DMS_PATH:dms/fatture}
-      pa-path: ${NFS_PA_PATH:pa/fatture}
-      rdi-path: ${NFS_RDI_PATH:rdi/fatture}
-      pdf-path: ${NFS_PDF_PATH:pdf/fatture}
-      txt-path: ${NFS_TXT_PATH:txt/fatture}
-      stampa-path: ${NFS_STAMPA_PATH:stampa/fatture}

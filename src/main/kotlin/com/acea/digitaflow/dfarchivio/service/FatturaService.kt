@@ -53,35 +53,31 @@ class FatturaService(
     private fun eseguiOperazioneFile(archivio: ArchivioRequest): Boolean {
         return try {
             when {
-                // Punto 1: B2C / B2C, esito 31(NS) -> Sposta file DMS in backup
+                // Punto 1: B2C, esito 31(NS) -> Sposta file DMS in backup
                 archivio.categoriaStampa == "B2C" &&
-                        archivio.canaleSecondario == "B2C" &&
                         archivio.esitoSdi == 31 -> {
                     logger.info("Caso IDRICO Punto 1: spostamento file DMS in backup")
                     spostaFileDmsInBackup(archivio)
                 }
 
-                // Punto 2: B2C / B2C, canaleSecondario = SI, esito 30(RC) o 32(MC)
+                // Punto 2: B2C, canaleSecondario = SI, esito 30(RC) o 32(MC)
                 archivio.categoriaStampa == "B2C" &&
-                        archivio.canaleSecondario == "B2C" &&
                         archivio.tipoCanaleSecondario == "SI" &&
                         (archivio.esitoSdi == 30 || archivio.esitoSdi == 32) -> {
                     logger.info("Caso IDRICO Punto 2: spostamento file DMS")
                     spostaFileDms(archivio)
                 }
 
-                // Punto 3: B2B / B2C, canaleSecondario = NO, esito 32(MC)
+                // Punto 3: B2B, canaleSecondario = NO, esito 32(MC)
                 archivio.categoriaStampa == "B2B" &&
-                        archivio.canaleSecondario == "B2C" &&
                         archivio.tipoCanaleSecondario == "NO" &&
                         archivio.esitoSdi == 32 -> {
                     logger.info("Caso IDRICO Punto 3: spostamento file DMS")
                     spostaFileDms(archivio)
                 }
 
-                // Punto 4: B2B / B2C, canaleSecondario = NO, esito 30(RC)
+                // Punto 4: B2B, canaleSecondario = NO, esito 30(RC)
                 archivio.categoriaStampa == "B2B" &&
-                        archivio.canaleSecondario == "B2C" &&
                         archivio.tipoCanaleSecondario == "NO" &&
                         archivio.esitoSdi == 30 -> {
                     logger.info("Caso IDRICO Punto 4: spostamento file DMS")
