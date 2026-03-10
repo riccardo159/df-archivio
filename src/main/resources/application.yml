@@ -30,11 +30,6 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
 kafka:
-  topics:
-    archivio: ${KAFKA_ARCHIVIO_TOPIC:df-infasamento-archivio-archivio-topic}
-    mail: ${KAFKA_MAIL_TOPIC:df-infasamento-archivio-mail-topic}
-    posta: ${KAFKA_POSTA_TOPIC:df-infasamento-archivio-posta-topic}
-    sdi: ${KAFKA_SDI_TOPIC:df-sdi.archivio}
   notification:
     topic: ${KAFKA_NOTIFICATION_TOPIC:df-archivio-notification-topic}
 
