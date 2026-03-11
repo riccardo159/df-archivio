@@ -37,10 +37,6 @@ kafka:
 server:
   port: ${SERVER_PORT:8087}
 
-app:
-  internal:
-    token: ${INTERNAL_TOKEN:test}
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

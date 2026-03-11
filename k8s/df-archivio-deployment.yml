@@ -87,11 +87,16 @@ spec:
             configMapKeyRef:
               name: df-archivio-config
               key: KAFKA_BOOTSTRAP_SERVERS
-        - name: FLYWAY_DEFAULT_SCHEMA
+        - name: KAFKA_SDI_TOPIC
           valueFrom:
             configMapKeyRef:
               name: df-archivio-config
-              key: FLYWAY_DEFAULT_SCHEMA
+              key: KAFKA_SDI_TOPIC
+        - name: KAFKA_NOTIFICATION_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: KAFKA_NOTIFICATION_TOPIC
         startupProbe:
           httpGet:
             path: /actuator/health

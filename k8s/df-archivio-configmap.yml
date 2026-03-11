@@ -11,3 +11,6 @@ data:
   POSTGRES_USER: ms_infasamento
   POSTGRES_PASSWORD: secret
   KAFKA_BOOTSTRAP_SERVERS: broker-0.brokers.idrico-kafka.svc.cluster.local:9092
+  KAFKA_SDI_TOPIC: df-sdi-archivio
+  KAFKA_NOTIFICATION_TOPIC: df-archivio-notification-topic
+

@@ -1,14 +1,14 @@
 # df-archivio - Microservizio per gestione archivio documenti
 services:
   df-archivio:
-    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.4
+    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.5
     container_name: df-archivio
     restart: unless-stopped
     ports:
       - "${SERVER_PORT:-8088}:${SERVER_PORT:-8088}"
     environment:
       # Server
-      SERVER_PORT: ${SERVER_PORT:-8081}
+      SERVER_PORT: ${SERVER_PORT:-8088}
       # Database
       POSTGRES_HOST: ${POSTGRES_HOST:-postgres_inf}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
@@ -17,6 +17,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
       # Kafka
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:29092}
+      KAFKA_SDI_TOPIC: ${KAFKA_SDI_TOPIC:-df-sdi-archivio}
+      KAFKA_NOTIFICATION_TOPIC: ${KAFKA_NOTIFICATION_TOPIC:-df-archivio-notification-topic}
       # Hibernate - auto-create tables in dev
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # Gradle
