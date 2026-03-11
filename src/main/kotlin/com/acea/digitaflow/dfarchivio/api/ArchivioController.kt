@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/api/archivio")
+@RequestMapping("/aceaidrico/docsflow/v1/archivio")
 class ArchivioController(
     private val archivioService: ArchivioService
 ) {

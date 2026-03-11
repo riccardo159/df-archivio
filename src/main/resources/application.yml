@@ -31,9 +31,8 @@ spring:
 
 kafka:
   topics:
-    sdi: ${KAFKA_SDI_TOPIC:df-sdi.archivio}
-  notification:
-    topic: ${KAFKA_NOTIFICATION_TOPIC:df-archivio-notification-topic}
+    sdi: ${KAFKA_SDI_TOPIC:df-sdi-archivio}
+    notification: ${KAFKA_NOTIFICATION_TOPIC:df-archivio-notification-topic}
 
 server:
   port: ${SERVER_PORT:8087}
