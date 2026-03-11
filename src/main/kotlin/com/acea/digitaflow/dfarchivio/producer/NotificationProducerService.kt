@@ -11,7 +11,7 @@ class NotificationProducerService(
 
     private val kafkaTemplate: KafkaTemplate<String, Any>,
 
-    @Value("\${kafka.notification.topic}")
+    @Value("\${kafka.topics.notification}")
     private val topicNotification: String
 ) {
 
