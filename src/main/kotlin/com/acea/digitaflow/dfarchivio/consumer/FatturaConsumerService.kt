@@ -20,7 +20,7 @@ class FatturaConsumerService(private val archivioService: ArchivioService) {
     @RetryableTopic(
         attempts = "3",
         backoff = Backoff(delay = 2000, multiplier = 2.0),
-        autoCreateTopics = "false"
+        autoCreateTopics = "true"
     )
     @KafkaListener(
         topics = ["\${kafka.topics.sdi}"],
