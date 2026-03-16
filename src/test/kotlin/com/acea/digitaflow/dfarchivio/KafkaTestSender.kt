@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component
 import java.time.Instant
 
 @Component
-@Profile("kafka-test")
+//@Profile("kafka-test")
 class KafkaTestSender(
 
     private val notificationProducerService: NotificationProducerService
@@ -21,6 +21,7 @@ class KafkaTestSender(
 
     override fun run(vararg args: String?) {
 
+        println("KAFKA TEST SENDER STARTED")
         val richiesta = ArchivioNotificationRequest(
             tipoCanaleSecondario = CanaleSecondario.PEC,
             flgCanaleSecondario = true,
@@ -58,19 +59,19 @@ class KafkaTestSender(
             tipoCanaleSecondario = CanaleSecondario.MAIL,
             flgCanaleSecondario = true,
             tipoDocumento = TipoDocumento.FATTURA,
-            datiDocumento = Object(),
+            datiDocumento = null,
             societa = "aat5",
             dcsId = "6562321g00510000DOC_2026_001111",
             testo = "Test invio kafka",
             campoDifferito = "20"
         )
-        notificationProducerService.inviaNotifica(listOf(doxxe))
+   //     notificationProducerService.inviaNotifica(listOf(doxxe))
 
         val stampa = ArchivioNotificationRequest(
             tipoCanaleSecondario = CanaleSecondario.STAMPATORE,
             flgCanaleSecondario = true,
             tipoDocumento = TipoDocumento.FATTURA,
-            datiDocumento = Object(),
+            datiDocumento = null,
             societa = "aat5",
             dcsId = "6562321g00510000DOC_2026_001111",
             testo = "Test invio kafka",
