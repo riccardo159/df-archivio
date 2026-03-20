@@ -45,3 +45,15 @@ df-archivio:
   expected-api-key: test
   allowed-users:
     - admin
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+  endpoint:
+    health:
+      show-details: "always"
+      group:
+        all:
+          include: "*"
