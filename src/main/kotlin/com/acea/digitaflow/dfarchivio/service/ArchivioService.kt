@@ -164,11 +164,13 @@ class ArchivioService(
         val canaleSecondario = infoGeneriche.canaleSecondario
             ?: valorizzaCanaleSecondario(infoGeneriche.canale)
 
+        val datiDocumento = documentService.buildDatiDocumento(request.dcsId, request.societa, docType)
+
         val notifica = ArchivioNotificationRequest(
             tipoCanaleSecondario = canaleSecondario,
             flgCanaleSecondario = infoGeneriche.flgCanaleSecondario ?: false,
             tipoDocumento = docType,
-            datiDocumento = request,
+            datiDocumento = datiDocumento,
             societa = request.societa,
             dcsId = request.dcsId
         )
