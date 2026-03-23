@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component
 import java.time.Instant
 
 @Component
-//@Profile("kafka-test")
+@Profile("kafka-test")
 class KafkaTestSender(
 
     private val notificationProducerService: NotificationProducerService

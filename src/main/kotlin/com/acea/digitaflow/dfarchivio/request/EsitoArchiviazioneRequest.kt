@@ -5,7 +5,7 @@ import java.time.Instant
 
 data class EsitoArchiviazioneRequest(
     val societa: String,
-    val canale: Canale,
+    val canale: Canale? = null,
     val dcsId: String,
     val stato: Int,
     val dataEvento: Instant

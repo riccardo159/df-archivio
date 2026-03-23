@@ -1,5 +1,7 @@
 package com.acea.digitaflow.dfarchivio.request
 
+import com.acea.digitalflow.df_common.enums.Canale
+
 data class ArchivioRequest(
     var dcsId: Long,
     var categoriaStampa: String,
@@ -10,6 +12,6 @@ data class ArchivioRequest(
     var nomeFileEnti: String,
     var dmsDestPath: String? = null,
     var esitoSdi: Int,
-    var societa : String,
-) {
-}
+    var societa: String,
+    var canale: Canale? = null,
+)

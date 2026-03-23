@@ -61,7 +61,8 @@ class ArchivioService(
                 nomeFileEnti = fatturaFile?.nomeFilePa ?: fatturaFile?.nomeFileDms ?: "",
                 dmsDestPath = fatturaFile?.dmsDestPath,
                 esitoSdi = fatturaArchivioDto.esitoSdi,
-                societa = fatturaArchivioDto.societa
+                societa = fatturaArchivioDto.societa,
+                canale = infoGeneriche?.canale
             )
 
             val esito = fatturaService.archiviazione(archivioRequest)

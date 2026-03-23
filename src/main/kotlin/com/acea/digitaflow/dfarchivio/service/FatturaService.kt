@@ -116,7 +116,7 @@ class FatturaService(
     private fun registraEsito(archivio: ArchivioRequest, stato: Int): EsitoArchiviazioneResponse {
         val request = EsitoArchiviazioneRequest(
             societa = archivio.societa,
-            canale = "STA",
+            canale = archivio.canale,
             dcsId = archivio.dcsId.toString(),
             stato = stato,
             dataEvento = Instant.now()
