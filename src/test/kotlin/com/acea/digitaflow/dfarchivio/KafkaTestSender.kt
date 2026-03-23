@@ -23,7 +23,7 @@ class KafkaTestSender(
 
         println("KAFKA TEST SENDER STARTED")
         val richiesta = ArchivioNotificationRequest(
-            tipoCanaleSecondario = CanaleSecondario.PEC,
+            tipoCanaleSecondario = CanaleSecondario.MAIL,
             flgCanaleSecondario = true,
             tipoDocumento = TipoDocumento.FATTURA,
             datiDocumento = MailDto(
@@ -68,7 +68,7 @@ class KafkaTestSender(
    //     notificationProducerService.inviaNotifica(listOf(doxxe))
 
         val stampa = ArchivioNotificationRequest(
-            tipoCanaleSecondario = CanaleSecondario.STAMPATORE,
+            tipoCanaleSecondario = CanaleSecondario.MAIL,
             flgCanaleSecondario = true,
             tipoDocumento = TipoDocumento.FATTURA,
             datiDocumento = null,
@@ -77,7 +77,7 @@ class KafkaTestSender(
             testo = "Test invio kafka",
             campoDifferito = null
         )
-        notificationProducerService.inviaNotifica(listOf(stampa))
+        notificationProducerService.inviaNotifica(listOf(richiesta))
 
     }
 }
