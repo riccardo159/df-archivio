@@ -7,7 +7,10 @@ import org.springframework.stereotype.Repository
 @Repository
 interface StatoRepository : JpaRepository<Stato, Long> {
 
-    fun findByDcsIdAndTipologiaStatoCodStato(dcsId: String, codStato: Long): Stato?
+    fun findByDcsIdAndTipologiaStatoCodStato(
+        dcsId: String,
+        codStato: Long
+    ): List<Stato>
 
     fun findByDcsIdAndFlagAttivoTrue(dcsId: String): List<Stato>
 }

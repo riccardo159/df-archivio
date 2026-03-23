@@ -43,7 +43,7 @@ class EsitoArchiviazioneService(
         val statoDuplicato = statoRepository.findByDcsIdAndTipologiaStatoCodStato(
             request.dcsId, request.stato.toLong()
         )
-        if (statoDuplicato != null) {
+        if (statoDuplicato.isNotEmpty()) {
             val msg = "Stato ${request.stato} gia' registrato per DCS_ID '${request.dcsId}'"
             logger.warn(msg)
             return EsitoArchiviazioneResponse(message = msg)

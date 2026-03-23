@@ -164,10 +164,8 @@ class ArchivioService(
         docType: TipoDocumento,
         request: EsitoArchiviazioneRequest
     ) {
-        val currentSchema = entityManager.createNativeQuery("select current_schema()").singleResult
-
         val canaleSecondario = infoGeneriche.canaleSecondario
-            ?: valorizzaCanaleSecondario(infoGeneriche.canale)?.also { nuovoCanale ->
+            ?: valorizzaCanaleSecondario(request.canale)?.also { nuovoCanale ->
                 val fresh = infoGenericheRepository.findByDcsId(infoGeneriche.dcsId)
                     ?: return@also
                 fresh.canaleSecondario = nuovoCanale
