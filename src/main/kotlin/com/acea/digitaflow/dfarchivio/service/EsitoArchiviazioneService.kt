@@ -81,8 +81,11 @@ class EsitoArchiviazioneService(
 
         statoRepository.save(nuovoStato)
 
+        infoGeneriche.stato = nuovoStato
+        infoGenericheRepository.save(infoGeneriche)
+
         logger.info(
-            "Stato {} salvato con successo per DCS_ID '{}', societa '{}'",
+            "Stato {} salvato e collegato a infoGeneriche per DCS_ID '{}', societa '{}'",
             request.stato, request.dcsId, request.societa
         )
 

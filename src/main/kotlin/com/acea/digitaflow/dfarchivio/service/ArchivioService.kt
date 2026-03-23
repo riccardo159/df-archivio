@@ -163,7 +163,11 @@ class ArchivioService(
         request: EsitoArchiviazioneRequest
     ) {
         val canaleSecondario = infoGeneriche.canaleSecondario
-            ?: valorizzaCanaleSecondario(infoGeneriche.canale)
+            ?: valorizzaCanaleSecondario(infoGeneriche.canale)?.also {
+                infoGeneriche.canaleSecondario = it
+                infoGenericheRepository.save(infoGeneriche)
+                logger.info("Canale secondario {} salvato su DB per dcsId={}", it, request.dcsId)
+            }
 
         var datiDocumento = documentService.buildDatiDocumento(request.dcsId, request.societa, docType)
 
@@ -194,12 +198,12 @@ class ArchivioService(
         )
     }
 
-    private fun valorizzaCanaleSecondario(canale: Canale?): CanaleSecondario {
+    private fun valorizzaCanaleSecondario(canale: Canale?): CanaleSecondario? {
         return when (canale) {
             Canale.EMA -> CanaleSecondario.MAIL
             Canale.PEC -> CanaleSecondario.PEC
             Canale.RAC, Canale.POS, Canale.FAX -> CanaleSecondario.STAMPATORE
-            else -> CanaleSecondario.STAMPATORE
+            else -> null
         }
     }
 
