@@ -89,6 +89,6 @@ class EsitoArchiviazioneService(
             request.stato, request.dcsId, request.societa
         )
 
-        return EsitoArchiviazioneResponse()
+        return EsitoArchiviazioneResponse(msgSuccesso = "Archiviazione elaborata correttamente")
     }
 }
