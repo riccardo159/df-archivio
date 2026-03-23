@@ -36,7 +36,7 @@ class EsitoArchiviazioneService(
         if (infoGeneriche == null) {
             val msg = "DCS_ID '${request.dcsId}' non trovato a sistema"
             logger.warn(msg)
-            return EsitoArchiviazioneResponse(msgErrore = msg)
+            return EsitoArchiviazioneResponse(message = msg)
         }
 
         // Verifica duplicato: stesso dcsId e stesso stato gia' inserito
@@ -46,7 +46,7 @@ class EsitoArchiviazioneService(
         if (statoDuplicato != null) {
             val msg = "Stato ${request.stato} gia' registrato per DCS_ID '${request.dcsId}'"
             logger.warn(msg)
-            return EsitoArchiviazioneResponse(msgErrore = msg)
+            return EsitoArchiviazioneResponse(message = msg)
         }
 
         // Recupera la tipologia stato
@@ -54,7 +54,7 @@ class EsitoArchiviazioneService(
         if (tipologiaStato == null) {
             val msg = "TipologiaStato con codStato=${request.stato} non trovata in anagrafica"
             logger.error(msg)
-            return EsitoArchiviazioneResponse(msgErrore = msg)
+            return EsitoArchiviazioneResponse(message = msg)
         }
 
         // Disattiva gli stati attivi precedenti per questo dcsId
@@ -89,6 +89,6 @@ class EsitoArchiviazioneService(
             request.stato, request.dcsId, request.societa
         )
 
-        return EsitoArchiviazioneResponse(msgSuccesso = "Archiviazione elaborata correttamente")
+        return EsitoArchiviazioneResponse(success = true, message = "Archiviazione elaborata correttamente")
     }
 }

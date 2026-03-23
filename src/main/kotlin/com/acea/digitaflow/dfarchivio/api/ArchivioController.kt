@@ -27,7 +27,7 @@ class ArchivioController(
         TenantContext.set(request.societa)
         val response = archivioService.registraEsito(request)
         TenantContext.clear()
-        return if (response.msgErrore.isEmpty()) {
+        return if (response.success) {
             ResponseEntity.ok(response)
         } else {
             ResponseEntity.badRequest().body(response)

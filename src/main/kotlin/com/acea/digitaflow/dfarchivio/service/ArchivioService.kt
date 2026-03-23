@@ -71,10 +71,10 @@ class ArchivioService(
 
             val esito = fatturaService.archiviazione(archivioRequest)
 
-            if (esito.msgErrore.isEmpty()) {
+            if (esito.success) {
                 logger.info("Archiviazione SDI completata con successo per dcsId={}", fatturaArchivioDto.dcsId)
             } else {
-                logger.warn("Archiviazione SDI con errori per dcsId={}: {}", fatturaArchivioDto.dcsId, esito.msgErrore)
+                logger.warn("Archiviazione SDI con errori per dcsId={}: {}", fatturaArchivioDto.dcsId, esito.message)
             }
         } finally {
             TenantContext.clear()
@@ -111,7 +111,7 @@ class ArchivioService(
         if (infoGeneriche == null) {
             val msg = "DCS_ID '${request.dcsId}' non trovato a sistema"
             logger.warn(msg)
-            return EsitoArchiviazioneResponse(msgErrore = msg)
+            return EsitoArchiviazioneResponse(message = msg)
         }
 
         val docType = infoGeneriche.docType
@@ -121,7 +121,7 @@ class ArchivioService(
             TipoDocumento.FATTURA -> {
                 logger.info("Instradamento esito verso FatturaService per dcsId={}", request.dcsId)
                 val esito = fatturaService.registraEsito(request)
-                if (esito.msgErrore.isEmpty() && request.stato == StatoDocumento.ARCHIVIATO) {
+                if (esito.success && request.stato == StatoDocumento.ARCHIVIATO) {
                     inviaNotifica(infoGeneriche, docType, request)
                 }
                 esito
@@ -130,7 +130,7 @@ class ArchivioService(
             TipoDocumento.MAIL -> {
                 logger.info("Instradamento esito verso DocumentService (MAIL) per dcsId={}", request.dcsId)
                 val esito = documentService.registraEsito(request)
-                if (esito.msgErrore.isEmpty() && request.stato == StatoDocumento.ARCHIVIATO) {
+                if (esito.success && request.stato == StatoDocumento.ARCHIVIATO) {
                     inviaNotifica(infoGeneriche, docType, request)
                 }
                 esito
@@ -139,7 +139,7 @@ class ArchivioService(
             TipoDocumento.RACCOMANDATE, TipoDocumento.POSTALE -> {
                 logger.info("Instradamento esito verso DocumentService (POSTA) per dcsId={}", request.dcsId)
                 val esito = documentService.registraEsito(request)
-                if (esito.msgErrore.isEmpty() && request.stato == StatoDocumento.ARCHIVIATO) {
+                if (esito.success && request.stato == StatoDocumento.ARCHIVIATO) {
                     inviaNotifica(infoGeneriche, docType, request)
                 }
                 esito
@@ -153,7 +153,7 @@ class ArchivioService(
             null -> {
                 val msg = "DocType non valorizzato per DCS_ID '${request.dcsId}'"
                 logger.warn(msg)
-                return EsitoArchiviazioneResponse(msgErrore = msg)
+                return EsitoArchiviazioneResponse(message = msg)
             }
         }
     }
