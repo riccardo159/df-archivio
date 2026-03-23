@@ -23,7 +23,8 @@ class ArchivioService(
     private val fatturaService: FatturaService,
     private val fatturaRepository: FatturaRepository,
     private val infoGenericheRepository: InfoGenericheRepository,
-    private val notificationProducerService: NotificationProducerService
+    private val notificationProducerService: NotificationProducerService,
+    private val mailService: MailService
 ) {
 
     private val logger = LoggerFactory.getLogger(ArchivioService::class.java)
@@ -164,7 +165,15 @@ class ArchivioService(
         val canaleSecondario = infoGeneriche.canaleSecondario
             ?: valorizzaCanaleSecondario(infoGeneriche.canale)
 
-        val datiDocumento = documentService.buildDatiDocumento(request.dcsId, request.societa, docType)
+        var datiDocumento = documentService.buildDatiDocumento(request.dcsId, request.societa, docType)
+
+        if (datiDocumento == null &&
+            docType == TipoDocumento.FATTURA &&
+            canaleSecondario in listOf(CanaleSecondario.MAIL, CanaleSecondario.PEC)
+        ) {
+            datiDocumento = mailService.buildDto(request.dcsId, request.societa)
+            logger.info("MailDto costruito per FATTURA con canale {} dcsId={}", canaleSecondario, request.dcsId)
+        }
 
         val notifica = ArchivioNotificationRequest(
             tipoCanaleSecondario = canaleSecondario,
@@ -172,7 +181,9 @@ class ArchivioService(
             tipoDocumento = docType,
             datiDocumento = datiDocumento,
             societa = request.societa,
-            dcsId = request.dcsId
+            dcsId = request.dcsId,
+            testo = infoGeneriche.mail?.testo,
+            campoDifferito = infoGeneriche.differito?.toString()
         )
         notificationProducerService.inviaNotifica(listOf(notifica))
         logger.info(
