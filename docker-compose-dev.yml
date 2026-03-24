@@ -1,7 +1,7 @@
 # df-archivio - Microservizio per gestione archivio documenti
 services:
   df-archivio:
-    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.8
+    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.10
     container_name: df-archivio
     restart: unless-stopped
     ports:
