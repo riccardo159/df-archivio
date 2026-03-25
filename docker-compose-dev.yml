@@ -1,7 +1,7 @@
 # df-archivio - Microservizio per gestione archivio documenti
 services:
   df-archivio:
-    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.8
+    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.9
     container_name: df-archivio
     restart: unless-stopped
     ports:
@@ -21,6 +21,8 @@ services:
       KAFKA_NOTIFICATION_TOPIC: ${KAFKA_NOTIFICATION_TOPIC:-df-archivio-notification-topic}
       # Hibernate - auto-create tables in dev
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # Zenit SMB
+      ZENIT_SMB_AMBIENTE: ${ZENIT_SMB_AMBIENTE:-collaudo}
       # Gradle
       GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.configureondemand=true"
       GRADLE_USER_HOME: /root/.gradle

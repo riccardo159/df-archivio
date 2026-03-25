@@ -57,3 +57,7 @@ management:
       group:
         all:
           include: "*"
+
+zenit:
+  smb:
+    ambiente: ${ZENIT_SMB_AMBIENTE:collaudo}
