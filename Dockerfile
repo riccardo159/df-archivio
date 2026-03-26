@@ -9,7 +9,7 @@ FROM eclipse-temurin:17-jre
 
 # Installa curl per health check
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends curl cifs-utils && \
     rm -rf /var/lib/apt/lists/*
 
 # Crea directory di lavoro
