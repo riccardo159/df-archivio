@@ -28,7 +28,6 @@ class ArchivioService(
     private val notificationProducerService: NotificationProducerService,
     private val mailService: MailService,
     private val entityManager: EntityManager,
-
     ) {
 
     private val logger = LoggerFactory.getLogger(ArchivioService::class.java)
@@ -100,7 +99,6 @@ class ArchivioService(
     }
 
     //Esito archiviazione dal DMS
-
     @Transactional
     fun registraEsito(request: EsitoArchiviazioneRequest): EsitoArchiviazioneResponse {
         logger.info("ArchivioService - registraEsito dcsId={}, canale={}", request.dcsId, request.canale)

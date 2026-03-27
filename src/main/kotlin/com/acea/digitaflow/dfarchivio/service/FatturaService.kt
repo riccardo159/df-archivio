@@ -136,8 +136,8 @@ class FatturaService(
         val sourceDir = if (lastSlash >= 0) sourceBase.substring(0, lastSlash) else null
         val fileBaseName = if (lastSlash >= 0) sourceBase.substring(lastSlash + 1) else sourceBase
 
-        val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, sovrascrivi = false)
-        val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, sovrascrivi = false)
+        val pdfOk = moveFileLocal(sourceDir, "$fileBaseName.pdf", destDir, overwrite = false)
+        val xmlOk = moveFileLocal(sourceDir, "$fileBaseName.xml", destDir, overwrite = false)
 
         logger.info("Spostamento file DMS completato per base={}, pdfOk={}, xmlOk={}", fileBaseName, pdfOk, xmlOk)
         return pdfOk && xmlOk
@@ -151,20 +151,31 @@ class FatturaService(
         val sourceDir = if (lastSlash >= 0) sourceBase.substring(0, lastSlash) else null
         val fileBaseName = if (lastSlash >= 0) sourceBase.substring(lastSlash + 1) else sourceBase
 
-        val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, sovrascrivi = true)
-        val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, sovrascrivi = true)
+        val pdfOk = moveFileLocal(sourceDir, "$fileBaseName.pdf", destDir, overwrite = true)
+        val xmlOk = moveFileLocal(sourceDir, "$fileBaseName.xml", destDir, overwrite = true)
 
-        logger.info("Spostamento file DMS in backup completato per base={}, pdfOk={}, xmlOk={}", fileBaseName, pdfOk, xmlOk)
+        logger.info(
+            "Spostamento file DMS in backup completato per base={}, pdfOk={}, xmlOk={}",
+            fileBaseName, pdfOk, xmlOk
+        )
         return pdfOk && xmlOk
     }
 
-    private fun moveFile(sourceRelativeDir: String?, sourceFileName: String, destRelativeDir: String?, sovrascrivi: Boolean): Boolean {
-        val sourceDir = smbService.buildPath(sourceRelativeDir)
-        val destDir = if (destRelativeDir != null) destRelativeDir else smbService.buildPath(null)
-        val sourcePath = "$sourceDir/$sourceFileName"
-        val destPath = "$destDir/$sourceFileName"
+    private fun moveFileLocal(
+        sourceRelativeDir: String?,
+        sourceFileName: String,
+        destRelativeDir: String?,
+        overwrite: Boolean
+    ): Boolean {
 
-        logger.info("Spostamento file: {} -> {}", sourcePath, destPath)
-        return smbService.moveFile(sourcePath, destPath, sovrascrivi)
+        val sourcePath = listOfNotNull(sourceRelativeDir, sourceFileName)
+            .joinToString("/")
+
+        val destPath = listOfNotNull(destRelativeDir, sourceFileName)
+            .joinToString("/")
+
+        logger.info("Spostamento file (local): {} -> {}", sourcePath, destPath)
+
+        return smbService.moveFileLocal(sourcePath, destPath, overwrite)
     }
 }
