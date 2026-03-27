@@ -4,26 +4,27 @@ import com.acea.digitaflow.dfarchivio.config.StatoDocumento
 import com.acea.digitaflow.dfarchivio.dto.EsitoArchiviazioneResponse
 import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
 import com.acea.digitaflow.dfarchivio.request.EsitoArchiviazioneRequest
+import com.acea.digitaflow.dfarchivio.service.storage.FileStorageService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
 
 @Service
 class FatturaService(
-    private val localStorageService: LocalStorageService,
+    private val fileStorageService: FileStorageService,
     private val esitoArchiviazioneService: EsitoArchiviazioneService
 ) {
 
     private val logger = LoggerFactory.getLogger(FatturaService::class.java)
 
     private fun sapDocIdDestPath(societa: String): String =
-        localStorageService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_SAPDOCID")
+        fileStorageService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_SAPDOCID")
 
     private fun noSapDocIdDestPath(societa: String): String =
-        localStorageService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_NO_SAPDOCID")
+        fileStorageService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_NO_SAPDOCID")
 
     private fun bckDataDestPath(societa: String): String =
-        localStorageService.buildPath(societa + "_OUTBOUND/BCK_DATA")
+        fileStorageService.buildPath(societa + "_OUTBOUND/BCK_DATA")
 
     fun archiviazione(archivio: ArchivioRequest): EsitoArchiviazioneResponse {
         logger.info(
@@ -119,7 +120,7 @@ class FatturaService(
     }
 
     private fun risolviDestinazioneDms(archivio: ArchivioRequest): String {
-        archivio.dmsDestPath?.let { return localStorageService.buildPath(it) }
+        archivio.dmsDestPath?.let { return fileStorageService.buildPath(it) }
 
         return if (!archivio.sapDocId.isNullOrBlank()) {
             sapDocIdDestPath(archivio.societa)
@@ -176,6 +177,6 @@ class FatturaService(
 
         logger.info("Spostamento file (local): {} -> {}", sourcePath, destPath)
 
-        return localStorageService.moveFileLocal(sourcePath, destPath, overwrite)
+        return fileStorageService.moveFile(sourcePath, destPath, overwrite)
     }
 }
