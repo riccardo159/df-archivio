@@ -1,6 +1,5 @@
 package com.acea.digitaflow.dfarchivio.service
 
-import com.hierynomus.smbj.share.DiskShare
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -10,28 +9,31 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 
 @Service
-class SmbService(
+class LocalStorageService(
     @Value("\${storage.local.path:/df-share}")
-    private val localBasePath: String
+    private val localBasePath: String,
+    @Value("\${ZENIT_SMB_AMBIENTE:collaudo}")
+    private val ambiente: String,
 ) {
-    private val logger = LoggerFactory.getLogger(SmbService::class.java)
+
+    private val logger = LoggerFactory.getLogger(LocalStorageService::class.java)
     private val baseDir: Path = Paths.get(localBasePath).toAbsolutePath()
+
+    val shareResolved = "Idrico_${ambiente}_DMS_DATI$"
 
     init {
         logger.info("SmbService initialized with mount path: {}", localBasePath)
 
         // Verifica che la mount esiste
         if (!baseDir.toFile().exists()) {
-            logger.warn("⚠️  Mount path non trovato: {}. Ops deve montare la share.", baseDir)
-            logger.warn("Comando: sudo mount -t cifs //zenit/Idrico_pro_DMS_DATI$ {} \\", localBasePath)
-            logger.warn("  -o username=testuser,password=testpass")
+            logger.warn("Mount path non trovato: {}. Ops deve montare la share.", baseDir)
         } else {
-            logger.info("✓ Mount path disponibile: {}", baseDir)
+            logger.info("Mount path disponibile: {}", baseDir)
         }
     }
 
     private fun resolveLocalPath(relativePath: String?): Path {
-        val base = Path.of(localBasePath)
+        val base = Path.of(localBasePath, shareResolved)
         return if (relativePath.isNullOrBlank()) base
         else base.resolve(relativePath.trim('/'))
     }
@@ -88,28 +90,8 @@ class SmbService(
         }
     }
 
-
-    // ══════════════════════════════════════════════════════════
-    //  Utility private
-    // ══════════════════════════════════════════════════════════
-
-    private fun createDirectoriesRecursively(share: DiskShare, path: String) {
-        val parts = path.split("/").filter { it.isNotBlank() }
-        if (parts.isEmpty()) return
-
-        var current = ""
-        for (part in parts) {
-            current = if (current.isEmpty()) part else "$current/$part"
-            if (!share.folderExists(current)) {
-                logger.debug("Creo directory SMB: $current")
-                share.mkdir(current)
-            }
-        }
-    }
-
-
     fun buildPath(relativeDir: String?): String {
-        return if (relativeDir.isNullOrBlank())""
+        return if (relativeDir.isNullOrBlank()) ""
         else relativeDir.trim('/')
     }
 

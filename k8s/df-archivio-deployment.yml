@@ -39,7 +39,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
       - name: df-archivio
-        image: "eu.gcr.io/aceabwceidriconoprod001/idrico/docs-flow/df-archivio:0.0.10"
+        image: "eu.gcr.io/aceabwceidriconoprod001/idrico/docs-flow/df-archivio:0.0.13"
         resources:
           limits:
             memory: "1Gi"
@@ -97,11 +97,6 @@ spec:
             configMapKeyRef:
               name: df-archivio-config
               key: KAFKA_NOTIFICATION_TOPIC
-        - name: STORAGE_MODE
-          valueFrom:
-            configMapKeyRef:
-              name: df-archivio-config
-              key: STORAGE_MODE
         - name: STORAGE_LOCAL_PATH
           valueFrom:
             configMapKeyRef:

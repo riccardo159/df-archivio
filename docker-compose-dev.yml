@@ -1,7 +1,7 @@
 # df-archivio - Microservizio per gestione archivio documenti
 services:
   df-archivio:
-    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.11
+    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.13
     container_name: df-archivio
     restart: unless-stopped
     ports:
@@ -23,11 +23,14 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # Zenit SMB
       ZENIT_SMB_AMBIENTE: ${ZENIT_SMB_AMBIENTE:-collaudo}
+
+      STORAGE_LOCAL_PATH: ${STORAGE_LOCAL_PATH:-/df-share}
+
       # Gradle
       GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.configureondemand=true"
       GRADLE_USER_HOME: /root/.gradle
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${SERVER_PORT:-8088}/actuator/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:${SERVER_PORT:-8088}/actuator/health || exit 1" ]
       interval: 30s
       timeout: 10s
       start_period: 300s

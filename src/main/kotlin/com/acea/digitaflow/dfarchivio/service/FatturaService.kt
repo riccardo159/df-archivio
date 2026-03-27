@@ -10,20 +10,20 @@ import java.time.Instant
 
 @Service
 class FatturaService(
-    private val smbService: SmbService,
+    private val localStorageService: LocalStorageService,
     private val esitoArchiviazioneService: EsitoArchiviazioneService
 ) {
 
     private val logger = LoggerFactory.getLogger(FatturaService::class.java)
 
     private fun sapDocIdDestPath(societa: String): String =
-        smbService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_SAPDOCID")
+        localStorageService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_SAPDOCID")
 
     private fun noSapDocIdDestPath(societa: String): String =
-        smbService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_NO_SAPDOCID")
+        localStorageService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_NO_SAPDOCID")
 
     private fun bckDataDestPath(societa: String): String =
-        smbService.buildPath(societa + "_OUTBOUND/BCK_DATA")
+        localStorageService.buildPath(societa + "_OUTBOUND/BCK_DATA")
 
     fun archiviazione(archivio: ArchivioRequest): EsitoArchiviazioneResponse {
         logger.info(
@@ -119,7 +119,7 @@ class FatturaService(
     }
 
     private fun risolviDestinazioneDms(archivio: ArchivioRequest): String {
-        archivio.dmsDestPath?.let { return smbService.buildPath(it) }
+        archivio.dmsDestPath?.let { return localStorageService.buildPath(it) }
 
         return if (!archivio.sapDocId.isNullOrBlank()) {
             sapDocIdDestPath(archivio.societa)
@@ -176,6 +176,6 @@ class FatturaService(
 
         logger.info("Spostamento file (local): {} -> {}", sourcePath, destPath)
 
-        return smbService.moveFileLocal(sourcePath, destPath, overwrite)
+        return localStorageService.moveFileLocal(sourcePath, destPath, overwrite)
     }
 }

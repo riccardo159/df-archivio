@@ -14,6 +14,5 @@ data:
   KAFKA_SDI_TOPIC: df-sdi-archivio
   KAFKA_NOTIFICATION_TOPIC: df-archivio-notification-topic
   ZENIT_SMB_AMBIENTE: collaudo
-  STORAGE_MODE: "local"
   STORAGE_LOCAL_PATH: "/df-share"
 
