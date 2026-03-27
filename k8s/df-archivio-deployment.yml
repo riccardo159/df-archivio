@@ -97,6 +97,19 @@ spec:
             configMapKeyRef:
               name: df-archivio-config
               key: KAFKA_NOTIFICATION_TOPIC
+        - name: STORAGE_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: STORAGE_MODE
+        - name: STORAGE_LOCAL_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: df-archivio-config
+              key: STORAGE_LOCAL_PATH
+        volumeMounts:
+        - name: df-share-volume
+          mountPath: /df-share
         startupProbe:
           httpGet:
             path: /actuator/health
@@ -122,3 +135,8 @@ spec:
           periodSeconds: 30
           successThreshold: 1
           failureThreshold: 3
+      volumes:
+      - name: df-share-volume
+        hostPath:
+          path: /df-share
+          type: Directory

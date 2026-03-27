@@ -20,13 +20,11 @@ class FileVerificationService(
         val pathRelativo = nomeFile.trim().replace('\\', '/')
 
         return try {
-            val trovato = smbService.withShare { share ->
-                smbService.fileExists(share, pathRelativo)
-            }
-            logger.info("Verifica file SMB tipoDocumento={}, path={}, trovato={}", tipoDocumento, pathRelativo, trovato)
+            val trovato = smbService.fileExists(pathRelativo)
+            logger.info("Verifica file tipoDocumento={}, path={}, trovato={}", tipoDocumento, pathRelativo, trovato)
             FileVerificationResult(tipoDocumento = tipoDocumento, trovato = trovato)
         } catch (e: Exception) {
-            logger.error("Errore verifica file SMB path={}: {}", pathRelativo, e.message, e)
+            logger.error("Errore verifica file path={}: {}", pathRelativo, e.message, e)
             FileVerificationResult(tipoDocumento = tipoDocumento, trovato = false)
         }
     }

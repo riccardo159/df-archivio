@@ -4,15 +4,9 @@ import com.acea.digitaflow.dfarchivio.config.StatoDocumento
 import com.acea.digitaflow.dfarchivio.dto.EsitoArchiviazioneResponse
 import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
 import com.acea.digitaflow.dfarchivio.request.EsitoArchiviazioneRequest
-import com.hierynomus.msdtyp.AccessMask
-import com.hierynomus.msfscc.FileAttributes
-import com.hierynomus.mssmb2.SMB2CreateDisposition
-import com.hierynomus.mssmb2.SMB2CreateOptions
-import com.hierynomus.mssmb2.SMB2ShareAccess
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
-import java.util.EnumSet
 
 @Service
 class FatturaService(
@@ -166,52 +160,11 @@ class FatturaService(
 
     private fun moveFile(sourceRelativeDir: String?, sourceFileName: String, destRelativeDir: String?, sovrascrivi: Boolean): Boolean {
         val sourceDir = smbService.buildPath(sourceRelativeDir)
-        val destDir = smbService.buildPath(destRelativeDir)
+        val destDir = if (destRelativeDir != null) destRelativeDir else smbService.buildPath(null)
         val sourcePath = "$sourceDir/$sourceFileName"
         val destPath = "$destDir/$sourceFileName"
 
-        logger.info("Spostamento file SMB: {} -> {}", sourcePath, destPath)
-
-        return smbService.withShare { share ->
-            try {
-                val sourceFile = share.openFile(
-                    sourcePath,
-                    EnumSet.of(AccessMask.GENERIC_READ),
-                    EnumSet.noneOf(FileAttributes::class.java),
-                    EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
-                    SMB2CreateDisposition.FILE_OPEN,
-                    EnumSet.noneOf(SMB2CreateOptions::class.java)
-                )
-
-                val destFile = share.openFile(
-                    destPath,
-                    EnumSet.of(AccessMask.GENERIC_WRITE),
-                    EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                    EnumSet.of(SMB2ShareAccess.FILE_SHARE_WRITE),
-                    SMB2CreateDisposition.FILE_OVERWRITE_IF,
-                    EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE)
-                )
-
-                sourceFile.use { src ->
-                    destFile.use { dst ->
-                        src.inputStream.use { input ->
-                            dst.outputStream.use { output ->
-                                input.copyTo(output)
-                            }
-                        }
-                    }
-                }
-
-                if (sovrascrivi) {
-                    share.rm(sourcePath)
-                }
-
-                logger.info("File spostato con successo: {} -> {}", sourcePath, destPath)
-                true
-            } catch (e: Exception) {
-                logger.error("Errore spostamento file {} -> {}", sourcePath, destPath, e)
-                false
-            }
-        }
+        logger.info("Spostamento file: {} -> {}", sourcePath, destPath)
+        return smbService.moveFile(sourcePath, destPath, sovrascrivi)
     }
 }
