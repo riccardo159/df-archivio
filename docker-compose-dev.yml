@@ -1,7 +1,7 @@
 # df-archivio - Microservizio per gestione archivio documenti
 services:
   df-archivio:
-    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.13
+    image: nexus.ops.keypartner.cloud/repository/docker-acea/docs-flow/df-archivio:0.0.14
     container_name: df-archivio
     restart: unless-stopped
     ports:
@@ -24,7 +24,8 @@ services:
       # Zenit SMB
       ZENIT_SMB_AMBIENTE: ${ZENIT_SMB_AMBIENTE:-collaudo}
 
-      STORAGE_LOCAL_PATH: ${STORAGE_LOCAL_PATH:-/df-share}
+      STORAGE_LOCAL_MOUNT_PATH: ${STORAGE_LOCAL_MOUNT_PATH:-/df-share}
+      STORAGE_TYPE:  ${STORAGE_TYPE:-local}
 
       # Gradle
       GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.configureondemand=true"

@@ -58,5 +58,6 @@ zenit:
     ambiente: ${ZENIT_SMB_AMBIENTE:collaudo}
 
 storage:
+  type: ${STORAGE_TYPE:local} # smb
   local:
-    path: ${STORAGE_LOCAL_PATH:/df-share}
+    mount-path: ${STORAGE_LOCAL_MOUNT_PATH:/df-share}

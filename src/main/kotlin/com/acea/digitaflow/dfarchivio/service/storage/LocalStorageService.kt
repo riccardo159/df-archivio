@@ -22,7 +22,7 @@ import java.nio.file.StandardCopyOption
     havingValue = "local"
 )
 class LocalStorageService(
-    @Value("\${storage.mount-path}")
+    @Value("\${storage.local.mount-path}")
     private val mountPath: String
 ) : FileStorageService {
 
