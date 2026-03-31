@@ -31,6 +31,7 @@ spring:
 
 kafka:
   topics:
+    archivio-retry: ${KAFKA_SDI_ARCHIVIO_RETRY_TOPIC:df-sdi-archivio-retry}
     sdi: ${KAFKA_SDI_TOPIC:df-sdi-archivio}
     notification: ${KAFKA_NOTIFICATION_TOPIC:df-archivio-notification-topic}
 
