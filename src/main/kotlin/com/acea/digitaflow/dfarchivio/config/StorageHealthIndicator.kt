@@ -7,11 +7,11 @@ import org.springframework.stereotype.Component
 
 @Component
 class StorageHealthIndicator(
-    private val storageService: FileStorageService
+    private val fileStorageService: FileStorageService
 ) : HealthIndicator {
 
     override fun health(): Health {
-        val status = storageService.getHealthStatus()
+        val status = fileStorageService.getHealthStatus()
 
         return if (status.isConnected) {
             Health.up()
