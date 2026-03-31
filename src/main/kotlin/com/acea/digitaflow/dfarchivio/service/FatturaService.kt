@@ -137,8 +137,8 @@ class FatturaService(
         val sourceDir = if (lastSlash >= 0) sourceBase.substring(0, lastSlash) else null
         val fileBaseName = if (lastSlash >= 0) sourceBase.substring(lastSlash + 1) else sourceBase
 
-        val pdfOk = moveFileLocal(sourceDir, "$fileBaseName.pdf", destDir, overwrite = false)
-        val xmlOk = moveFileLocal(sourceDir, "$fileBaseName.xml", destDir, overwrite = false)
+        val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, overwrite = false)
+        val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, overwrite = false)
 
         logger.info("Spostamento file DMS completato per base={}, pdfOk={}, xmlOk={}", fileBaseName, pdfOk, xmlOk)
         return pdfOk && xmlOk
@@ -152,8 +152,8 @@ class FatturaService(
         val sourceDir = if (lastSlash >= 0) sourceBase.substring(0, lastSlash) else null
         val fileBaseName = if (lastSlash >= 0) sourceBase.substring(lastSlash + 1) else sourceBase
 
-        val pdfOk = moveFileLocal(sourceDir, "$fileBaseName.pdf", destDir, overwrite = true)
-        val xmlOk = moveFileLocal(sourceDir, "$fileBaseName.xml", destDir, overwrite = true)
+        val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, overwrite = true)
+        val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, overwrite = true)
 
         logger.info(
             "Spostamento file DMS in backup completato per base={}, pdfOk={}, xmlOk={}",
@@ -162,7 +162,7 @@ class FatturaService(
         return pdfOk && xmlOk
     }
 
-    private fun moveFileLocal(
+    private fun moveFile(
         sourceRelativeDir: String?,
         sourceFileName: String,
         destRelativeDir: String?,
