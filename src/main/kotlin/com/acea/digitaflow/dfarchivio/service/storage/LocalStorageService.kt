@@ -23,8 +23,12 @@ import java.nio.file.StandardCopyOption
 )
 class LocalStorageService(
     @Value("\${storage.local.mount-path}")
-    private val mountPath: String
-) : FileStorageService {
+    private val mountPath: String,
+    @Value("\${ZENIT_SMB_AMBIENTE:collaudo}")
+    private val ambiente: String,
+
+    ) : FileStorageService {
+    val shareResolved = "Idrico_${ambiente}_DMS_DATI$"
 
     private val logger = LoggerFactory.getLogger(LocalStorageService::class.java)
     private val baseDir: Path = Paths.get(mountPath).toAbsolutePath()
@@ -117,15 +121,9 @@ class LocalStorageService(
 
         // SE È UN UNC PATH (inizia con \\)
         if (normalized.startsWith("\\\\")) {
-            // \\zenit.aceaspa.it\Idrico_collaudo_DMS_DATI$\AAT2_OUTBOUND\...
-            // Rimuovi \\
             var path = normalized.removePrefix("\\\\")
-            // → zenit.aceaspa.it\Idrico_collaudo_DMS_DATI$\AAT2_OUTBOUND\...
-
-            // Trova il primo \ (dopo il server)
             val firstBackslashIndex = path.indexOf("\\")
 
-            // Estrai tutto dopo: Idrico_collaudo_DMS_DATI$\AAT2_OUTBOUND\...
             if (firstBackslashIndex != -1) {
                 path = path.substring(firstBackslashIndex + 1)
                 normalized = path
@@ -134,6 +132,15 @@ class LocalStorageService(
 
         // Normalizza separatori
         normalized = normalized.replace("\\", "/").trimStart('/')
+
+        // Controlla il pattern "Idrico_*_DMS_DATI$" (non importa l'ambiente)
+        val sharePattern = Regex("""Idrico_\w+_DMS_DATI\$""")
+        if (!sharePattern.containsMatchIn(normalized)) {
+            normalized = "$shareResolved/$normalized"
+            logger.debug("Aggiunta share al path: {}", normalized)
+        } else {
+            logger.debug("Share con pattern Idrico_*_DMS_DATI$ già presente nel path")
+        }
 
         // Resolve e valida
         val resolved = baseDir.resolve(normalized).normalize()
