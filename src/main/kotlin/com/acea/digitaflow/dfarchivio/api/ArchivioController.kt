@@ -25,12 +25,11 @@ class ArchivioController(
     ): ResponseEntity<EsitoArchiviazioneResponse> {
         logger.info("Ricevuta richiesta esito archiviazione DMS per dcsId={}", request.dcsId)
         TenantContext.set(request.societa)
-        val response = archivioService.registraEsito(request)
-        TenantContext.clear()
-        return if (response.success) {
-            ResponseEntity.ok(response)
-        } else {
-            ResponseEntity.badRequest().body(response)
+        try {
+            val response = archivioService.registraEsito(request)
+            return ResponseEntity.ok(response)
+        } finally {
+            TenantContext.clear()
         }
     }
 }

@@ -9,8 +9,10 @@ import com.acea.digitaflow.dfarchivio.schema.TenantContext
 import com.acea.digitalflow.df_common.entity.Stato
 import com.acea.digitalflow.df_common.enums.SistemaCoinvolto
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.server.ResponseStatusException
 
 @Service
 class EsitoArchiviazioneService(
@@ -33,29 +35,19 @@ class EsitoArchiviazioneService(
 
         // Ricerca documento per dcsId (la societa e' determinata dallo schema multi-tenant)
         val infoGeneriche = infoGenericheRepository.findByDcsId(request.dcsId)
-        if (infoGeneriche == null) {
-            val msg = "DCS_ID '${request.dcsId}' non trovato a sistema"
-            logger.warn(msg)
-            return EsitoArchiviazioneResponse(message = msg)
-        }
+            ?: throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "DCS_ID '${request.dcsId}' non trovato a sistema")
 
         // Verifica duplicato: stesso dcsId e stesso stato gia' inserito
         val statoDuplicato = statoRepository.findByDcsIdAndTipologiaStatoCodStato(
             request.dcsId, request.stato.toLong()
         )
         if (statoDuplicato.isNotEmpty()) {
-            val msg = "Stato ${request.stato} gia' registrato per DCS_ID '${request.dcsId}'"
-            logger.warn(msg)
-            return EsitoArchiviazioneResponse(message = msg)
+            throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Stato ${request.stato} gia' registrato per DCS_ID '${request.dcsId}'")
         }
 
         // Recupera la tipologia stato
         val tipologiaStato = tipologiaStatoRepository.findByCodStato(request.stato.toLong())
-        if (tipologiaStato == null) {
-            val msg = "TipologiaStato con codStato=${request.stato} non trovata in anagrafica"
-            logger.error(msg)
-            return EsitoArchiviazioneResponse(message = msg)
-        }
+            ?: throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "TipologiaStato con codStato=${request.stato} non trovata in anagrafica")
 
         // Disattiva gli stati attivi precedenti per questo dcsId
         val statiAttivi = statoRepository.findByDcsIdAndFlagAttivoTrue(request.dcsId)

@@ -17,7 +17,9 @@ import com.acea.digitalflow.df_common.enums.TipoDocumento
 import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.web.server.ResponseStatusException
 
 @Service
 class ArchivioService(
@@ -106,11 +108,7 @@ class ArchivioService(
         logger.info("TenantContext impostato per società '{}'", request.societa)
 
         val infoGeneriche = infoGenericheRepository.findByDcsId(request.dcsId)
-        if (infoGeneriche == null) {
-            val msg = "DCS_ID '${request.dcsId}' non trovato a sistema"
-            logger.warn(msg)
-            return EsitoArchiviazioneResponse(message = msg)
-        }
+            ?: throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "DCS_ID '${request.dcsId}' non trovato a sistema")
 
         val docType = infoGeneriche.docType
         logger.info("ArchivioService - dcsId={}, docType={}", request.dcsId, docType)
@@ -149,9 +147,7 @@ class ArchivioService(
             }
 
             null -> {
-                val msg = "DocType non valorizzato per DCS_ID '${request.dcsId}'"
-                logger.warn(msg)
-                return EsitoArchiviazioneResponse(message = msg)
+                throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "DocType non valorizzato per DCS_ID '${request.dcsId}'")
             }
         }
     }
