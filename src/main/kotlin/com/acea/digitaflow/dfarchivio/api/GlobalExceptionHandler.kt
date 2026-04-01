@@ -24,6 +24,6 @@ class GlobalExceptionHandler {
     fun handleGenericException(ex: Exception): ResponseEntity<EsitoArchiviazioneResponse> {
         logger.error("Errore interno imprevisto: {}", ex.message, ex)
         val response = EsitoArchiviazioneResponse(message = ex.message ?: "Errore interno imprevisto")
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(response)
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response)
     }
 }
