@@ -18,7 +18,7 @@ import com.acea.digitalflow.df_common.dto.StorageHealthStatus
  * Configurazione:
  *   storage.type: smb # oppure: local
  *   storage.smb.server: zenit.aceaspa.it
- *   storage.mount-path: /mnt/archivio
+ *   storage.local.mount-path: /mnt/archivio
  */
 interface FileStorageService {
 
