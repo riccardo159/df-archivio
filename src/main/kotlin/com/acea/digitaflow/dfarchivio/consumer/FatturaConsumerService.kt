@@ -1,7 +1,7 @@
 package com.acea.digitaflow.dfarchivio.consumer
 
-import com.acea.digitaflow.dfarchivio.service.ArchivioService
 import com.acea.digitaflow.dfarchivio.dto.FatturaArchivioDto
+import com.acea.digitaflow.dfarchivio.service.ArchivioService
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.annotation.RetryableTopic
@@ -20,7 +20,8 @@ class FatturaConsumerService(private val archivioService: ArchivioService) {
     @RetryableTopic(
         attempts = "3",
         backoff = Backoff(delay = 2000, multiplier = 2.0),
-        autoCreateTopics = "true"
+        autoCreateTopics = "true",
+        exclude = [IllegalArgumentException::class]
     )
     @KafkaListener(
         topics = ["\${kafka.topics.sdi}"],

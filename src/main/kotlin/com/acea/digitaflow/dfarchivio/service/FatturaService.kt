@@ -26,7 +26,7 @@ class FatturaService(
     private fun bckDataDestPath(societa: String): String =
         fileStorageService.buildPath(societa + "_OUTBOUND/BCK_DATA")
 
-    fun archiviazione(archivio: ArchivioRequest): EsitoArchiviazioneResponse {
+    fun archiviazione(archivio: ArchivioRequest) {
         logger.info(
             "Avvio archiviazione DMS per dcsId={}, categoria={}, esito={}, canaleSecondario={}",
             archivio.dcsId, archivio.categoriaStampa, archivio.esitoSdi, archivio.canaleSecondario
@@ -35,11 +35,10 @@ class FatturaService(
         // 1. Esegui operazione file DMS
         val operazioneOk = eseguiOperazioneFile(archivio)
 
-        // 2. Registra esito su DB
-        val statoEsito = if (operazioneOk) StatoDocumento.ARCHIVIATO else StatoDocumento.NON_ARCHIVIATO
-        val esito = registraEsito(archivio, statoEsito)
+      // // 2. Registra esito su DB
+      // val statoEsito = if (operazioneOk) StatoDocumento.ARCHIVIATO else StatoDocumento.NON_ARCHIVIATO
+      // val esito = registraEsito(archivio, statoEsito)
 
-        return esito
     }
 
     fun registraEsito(request: EsitoArchiviazioneRequest): EsitoArchiviazioneResponse =
@@ -130,36 +129,34 @@ class FatturaService(
     }
 
     private fun spostaFileDms(archivio: ArchivioRequest): Boolean {
-        val sourceBase = archivio.nomeFileDms
+        val sourceBase = archivio.nomeFileDms.replace("\\", "/")  // normalizza separatori
         val destDir = risolviDestinazioneDms(archivio)
 
         val lastSlash = sourceBase.lastIndexOf('/')
         val sourceDir = if (lastSlash >= 0) sourceBase.substring(0, lastSlash) else null
         val fileBaseName = if (lastSlash >= 0) sourceBase.substring(lastSlash + 1) else sourceBase
 
-        val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, overwrite = false)
-        val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, overwrite = false)
+        val fileOk = moveFile(sourceDir, "$fileBaseName", destDir, overwrite = false)
 
-        logger.info("Spostamento file DMS completato per base={}, pdfOk={}, xmlOk={}", fileBaseName, pdfOk, xmlOk)
-        return pdfOk && xmlOk
+        logger.info("Spostamento file DMS completato per base={}, fileOk={}, ", fileBaseName, fileOk)
+        return fileOk
     }
 
     private fun spostaFileDmsInBackup(archivio: ArchivioRequest): Boolean {
-        val sourceBase = archivio.nomeFileDms
+        val sourceBase = archivio.nomeFileDms.replace("\\", "/")
         val destDir = bckDataDestPath(archivio.societa)
 
         val lastSlash = sourceBase.lastIndexOf('/')
         val sourceDir = if (lastSlash >= 0) sourceBase.substring(0, lastSlash) else null
         val fileBaseName = if (lastSlash >= 0) sourceBase.substring(lastSlash + 1) else sourceBase
 
-        val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, overwrite = true)
-        val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, overwrite = true)
+        val fileOk = moveFile(sourceDir, "$fileBaseName", destDir, overwrite = true)
 
         logger.info(
-            "Spostamento file DMS in backup completato per base={}, pdfOk={}, xmlOk={}",
-            fileBaseName, pdfOk, xmlOk
+            "Spostamento file DMS in backup completato per base={}, fileOk={},  ",
+            fileBaseName, fileOk
         )
-        return pdfOk && xmlOk
+        return fileOk
     }
 
     private fun moveFile(

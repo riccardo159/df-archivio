@@ -40,7 +40,9 @@ class ArchivioService(
             fatturaArchivioDto.dcsId,
             fatturaArchivioDto.esitoSdi
         )
-
+        require(!fatturaArchivioDto.societa.isNullOrBlank()) {
+            "societa non presente"
+        }
         TenantContext.set(fatturaArchivioDto.societa)
         logger.info("TenantContext impostato per società '{}'", fatturaArchivioDto.societa)
 
@@ -55,7 +57,7 @@ class ArchivioService(
             val fatturaFile = fattura.fatturaFile
 
             val archivioRequest = ArchivioRequest(
-                dcsId = fatturaArchivioDto.dcsId.toLong(),
+                dcsId = fatturaArchivioDto.dcsId,
                 categoriaStampa = resolveCategoriaStampa(fattura.modalitaStampa),
                 nomeFileDms = fatturaFile?.nomeFileDms ?: "",
                 canaleSecondario = infoGeneriche?.canaleSecondario?.name,
@@ -67,19 +69,14 @@ class ArchivioService(
                 societa = fatturaArchivioDto.societa,
                 canale = infoGeneriche?.canale
             )
-
-            val esito = fatturaService.archiviazione(archivioRequest)
-
-            if (esito.success) {
-                logger.info("Archiviazione SDI completata con successo per dcsId={}", fatturaArchivioDto.dcsId)
-            } else {
-                logger.warn("Archiviazione SDI con errori per dcsId={}: {}", fatturaArchivioDto.dcsId, esito.message)
-            }
+            fatturaService.archiviazione(archivioRequest)
         } finally {
             TenantContext.clear()
         }
     }
-
+//todo modifricare
+    //    "modalitaStampa" : "Stampa massiva - Solo archiviazione",
+    //    "modalitaStampa" : "Stampa massiva FE",
     private fun resolveCategoriaStampa(modalitaStampa: String?): String {
         if (modalitaStampa.isNullOrBlank()) return "B2C"
 
@@ -89,13 +86,6 @@ class ArchivioService(
             modalitaStampa.contains("B2B", ignoreCase = true) -> "B2B"
             else -> "B2C"
         }
-    }
-
-    //Flusso fatture (archiviazione DMS)
-
-    fun archiviazioneFattura(archivio: ArchivioRequest) {
-        logger.info("ArchivioService - archiviazioneFattura dcsId={}", archivio.dcsId)
-        fatturaService.archiviazione(archivio)
     }
 
     //Esito archiviazione dal DMS
