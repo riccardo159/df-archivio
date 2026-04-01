@@ -9,7 +9,7 @@ data class FatturaArchivioDto @JsonCreator constructor(
     val dcsId: String,
 
     @JsonProperty("societa")
-    val societa: String,
+    val societa: String? = null,
 
     @JsonProperty("esitoSdi")
     val esitoSdi: Int,
