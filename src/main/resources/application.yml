@@ -50,9 +50,6 @@ management:
   endpoint:
     health:
       show-details: "always"
-      group:
-        all:
-          include: "*"
 
 zenit:
   smb:

@@ -33,7 +33,7 @@ class SchemaMultiTenantConnectionProvider(
 
     override fun releaseConnection(tenantIdentifier: String, connection: Connection) {
         connection.createStatement().use {
-            it.execute("""SET search_path TO tenantIdentifier""")
+            it.execute("""SET search_path TO "public"""")
         }
         connection.close()
     }

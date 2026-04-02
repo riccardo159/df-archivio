@@ -284,43 +284,4 @@ class SmbStorageService(
             }
         }
     }
-
-    override fun getHealthStatus(): StorageHealthStatus {
-        return try {
-            // Step 1: Leggi configurazione (può fallire)
-            val props = try {
-                configProvider.getEffectiveConfig("DEFAULT")
-            } catch (configEx: Exception) {
-                logger.error("Config non trovata", configEx)
-                return StorageHealthStatus(
-                    isConnected = false,
-                    storageType = "SMB",
-                    basePath = "N/A",
-                    errorMessage = "Config error: ${configEx.message}",
-                    lastConnectionTime = System.currentTimeMillis()
-                )
-            }
-
-            // Step 2: Testa connessione (può fallire)
-            withShare { share ->
-                share.list("/")
-
-                StorageHealthStatus(
-                    isConnected = true,
-                    storageType = "SMB",
-                    basePath = props.basePath,
-                    lastConnectionTime = System.currentTimeMillis()
-                )
-            }
-        } catch (connEx: Exception) {
-            logger.error("Errore connessione SMB", connEx)
-            StorageHealthStatus(
-                isConnected = false,
-                storageType = "SMB",
-                basePath = "",
-                errorMessage = "Connection error: ${connEx.message}",
-                lastConnectionTime = System.currentTimeMillis()
-            )
-        }
-    }
 }

@@ -68,11 +68,6 @@ interface FileStorageService {
      */
     fun deleteFileIfExists(relativeDir: String? = null, fileName: String)
 
-    /**
-     * Riporta diagnostica sullo stato dello storage
-     */
-    fun getHealthStatus(): StorageHealthStatus
-
     fun moveFile(sourcePath: String, destPath: String, overwrite: Boolean): Boolean
 
     fun buildPath(relativeDir: String?): String {

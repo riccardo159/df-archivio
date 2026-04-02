@@ -178,27 +178,4 @@ class LocalStorageService(
             false
         }
     }
-
-
-    override fun getHealthStatus(): StorageHealthStatus {
-        return try {
-            val file = baseDir.toFile()
-            val isConnected = file.exists() && file.isDirectory
-
-            StorageHealthStatus(
-                isConnected = isConnected,
-                storageType = "LOCAL",
-                basePath = baseDir.toString(),
-                lastConnectionTime = System.currentTimeMillis()
-            )
-        } catch (e: Exception) {
-            StorageHealthStatus(
-                isConnected = false,
-                storageType = "LOCAL",
-                basePath = baseDir.toString(),
-                errorMessage = e.message,
-                lastConnectionTime = System.currentTimeMillis()
-            )
-        }
-    }
 }
