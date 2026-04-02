@@ -2,7 +2,7 @@ package com.acea.digitaflow.dfarchivio.dto
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.time.LocalDateTime
+import java.time.Instant
 
 data class FatturaArchivioDto @JsonCreator constructor(
     @JsonProperty("dcsId")
@@ -18,5 +18,5 @@ data class FatturaArchivioDto @JsonCreator constructor(
     val nomeFlusso: String,
 
     @JsonProperty("dataEvento")
-    val dataEvento: LocalDateTime
+    val dataEvento: Instant
 )

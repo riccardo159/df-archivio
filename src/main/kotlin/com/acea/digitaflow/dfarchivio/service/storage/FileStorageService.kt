@@ -72,6 +72,6 @@ interface FileStorageService {
 
     fun buildPath(relativeDir: String?): String {
         return if (relativeDir.isNullOrBlank()) ""
-        else relativeDir.trim('/')
+        else relativeDir.replace("\\", "/").trim('/')
     }
 }

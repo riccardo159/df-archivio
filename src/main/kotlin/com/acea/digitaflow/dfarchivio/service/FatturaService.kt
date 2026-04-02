@@ -136,10 +136,11 @@ class FatturaService(
         val sourceDir = if (lastSlash >= 0) sourceBase.substring(0, lastSlash) else null
         val fileBaseName = if (lastSlash >= 0) sourceBase.substring(lastSlash + 1) else sourceBase
 
-        val fileOk = moveFile(sourceDir, "$fileBaseName", destDir, overwrite = false)
+        val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, overwrite = false)
+        val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, overwrite = false)
 
-        logger.info("Spostamento file DMS completato per base={}, fileOk={}, ", fileBaseName, fileOk)
-        return fileOk
+        logger.info("Spostamento file DMS completato per base={}, pdfOk={}, xmlOk={}", fileBaseName, pdfOk, xmlOk)
+        return pdfOk && xmlOk
     }
 
     private fun spostaFileDmsInBackup(archivio: ArchivioRequest): Boolean {
@@ -150,13 +151,14 @@ class FatturaService(
         val sourceDir = if (lastSlash >= 0) sourceBase.substring(0, lastSlash) else null
         val fileBaseName = if (lastSlash >= 0) sourceBase.substring(lastSlash + 1) else sourceBase
 
-        val fileOk = moveFile(sourceDir, "$fileBaseName", destDir, overwrite = true)
+        val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, overwrite = true)
+        val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, overwrite = true)
 
         logger.info(
-            "Spostamento file DMS in backup completato per base={}, fileOk={},  ",
-            fileBaseName, fileOk
+            "Spostamento file DMS in backup completato per base={}, pdfOk={}, xmlOk={}",
+            fileBaseName, pdfOk, xmlOk
         )
-        return fileOk
+        return pdfOk && xmlOk
     }
 
     private fun moveFile(
@@ -168,9 +170,11 @@ class FatturaService(
 
         val sourcePath = listOfNotNull(sourceRelativeDir, sourceFileName)
             .joinToString("/")
+            .replace("\\", "/")
 
         val destPath = listOfNotNull(destRelativeDir, sourceFileName)
             .joinToString("/")
+            .replace("\\", "/")
 
         logger.info("Spostamento file (local): {} -> {}", sourcePath, destPath)
 

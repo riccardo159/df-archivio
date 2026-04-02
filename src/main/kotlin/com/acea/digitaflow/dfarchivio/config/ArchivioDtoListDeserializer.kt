@@ -3,6 +3,7 @@ package com.acea.digitaflow.dfarchivio.config
 import com.acea.digitaflow.dfarchivio.dto.FatturaArchivioDto
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -34,6 +35,7 @@ class FatturaArchivioDtoDeserializer : Deserializer<FatturaArchivioDto> {
     private val objectMapper: ObjectMapper = jacksonObjectMapper()
         .registerModule(JavaTimeModule())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
 
     override fun deserialize(topic: String?, data: ByteArray?): FatturaArchivioDto? {
         if (data == null) return null
