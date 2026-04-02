@@ -129,12 +129,14 @@ class FatturaService(
     }
 
     private fun spostaFileDms(archivio: ArchivioRequest): Boolean {
-        val sourceBase = archivio.nomeFileDms.replace("\\", "/")  // normalizza separatori
+        val sourceBase = archivio.nomeFileDms
         val destDir = risolviDestinazioneDms(archivio)
 
-        val lastSlash = sourceBase.lastIndexOf('/')
-        val sourceDir = if (lastSlash >= 0) sourceBase.substring(0, lastSlash) else null
-        val fileBaseName = if (lastSlash >= 0) sourceBase.substring(lastSlash + 1) else sourceBase
+        val lastSep = maxOf(sourceBase.lastIndexOf('/'), sourceBase.lastIndexOf('\\'))
+        val sourceDir = if (lastSep >= 0) sourceBase.substring(0, lastSep) else null
+        val fileBaseName = if (lastSep >= 0) sourceBase.substring(lastSep + 1) else sourceBase
+
+        logger.info("Spostamento file DMS: base={}, sourceDir={}, destDir={}", fileBaseName, sourceDir?.let { fileStorageService.buildPath(it) }, destDir)
 
         val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, overwrite = false)
         val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, overwrite = false)
@@ -144,20 +146,19 @@ class FatturaService(
     }
 
     private fun spostaFileDmsInBackup(archivio: ArchivioRequest): Boolean {
-        val sourceBase = archivio.nomeFileDms.replace("\\", "/")
+        val sourceBase = archivio.nomeFileDms
         val destDir = bckDataDestPath(archivio.societa)
 
-        val lastSlash = sourceBase.lastIndexOf('/')
-        val sourceDir = if (lastSlash >= 0) sourceBase.substring(0, lastSlash) else null
-        val fileBaseName = if (lastSlash >= 0) sourceBase.substring(lastSlash + 1) else sourceBase
+        val lastSep = maxOf(sourceBase.lastIndexOf('/'), sourceBase.lastIndexOf('\\'))
+        val sourceDir = if (lastSep >= 0) sourceBase.substring(0, lastSep) else null
+        val fileBaseName = if (lastSep >= 0) sourceBase.substring(lastSep + 1) else sourceBase
+
+        logger.info("Spostamento file DMS in backup: base={}, sourceDir={}, destDir={}", fileBaseName, sourceDir?.let { fileStorageService.buildPath(it) }, destDir)
 
         val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, overwrite = true)
         val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, overwrite = true)
 
-        logger.info(
-            "Spostamento file DMS in backup completato per base={}, pdfOk={}, xmlOk={}",
-            fileBaseName, pdfOk, xmlOk
-        )
+        logger.info("Spostamento file DMS in backup completato per base={}, pdfOk={}, xmlOk={}", fileBaseName, pdfOk, xmlOk)
         return pdfOk && xmlOk
     }
 
@@ -176,7 +177,10 @@ class FatturaService(
             .joinToString("/")
             .replace("\\", "/")
 
-        logger.info("Spostamento file (local): {} -> {}", sourcePath, destPath)
+        // Log con path normalizzati (senza radice UNC)
+        val sourceClean = fileStorageService.buildPath(sourcePath)
+        val destClean = fileStorageService.buildPath(destPath)
+        logger.info("Spostamento file: {} -> {} (overwrite={})", sourceClean, destClean, overwrite)
 
         return fileStorageService.moveFile(sourcePath, destPath, overwrite)
     }

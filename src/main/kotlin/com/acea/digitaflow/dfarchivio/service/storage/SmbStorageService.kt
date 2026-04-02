@@ -205,7 +205,7 @@ class SmbStorageService(
 
     private fun buildPath(basePath: String, relativeDir: String?): String {
         val base = basePath.trim().trim('/', '\\')
-        val rel = (relativeDir ?: "").trim().trim('/', '\\')
+        val rel = stripUncRoot(relativeDir ?: "").replace("\\", "/").trim('/')
         val combined = when {
             base.isBlank() -> rel
             rel.isBlank() -> base
@@ -238,10 +238,12 @@ class SmbStorageService(
 
 
     override fun moveFile(sourcePath: String, destPath: String, overwrite: Boolean): Boolean {
+        val normalizedSource = stripUncRoot(sourcePath).replace("/", "\\")
+        val normalizedDest = stripUncRoot(destPath).replace("/", "\\")
         return withShare { share ->
             try {
                 val sourceFile = share.openFile(
-                    sourcePath,
+                    normalizedSource,
                     EnumSet.of(AccessMask.GENERIC_READ),
                     EnumSet.noneOf(FileAttributes::class.java),
                     EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
@@ -250,11 +252,11 @@ class SmbStorageService(
                 )
 
                 // Crea directory di destinazione se non esiste
-                val destDir = destPath.substringBeforeLast('/')
+                val destDir = normalizedDest.substringBeforeLast('\\')
                 createDirectoriesRecursively(share, destDir)
 
                 val destFile = share.openFile(
-                    destPath,
+                    normalizedDest,
                     EnumSet.of(AccessMask.GENERIC_WRITE),
                     EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                     EnumSet.of(SMB2ShareAccess.FILE_SHARE_WRITE),
@@ -273,13 +275,13 @@ class SmbStorageService(
                 }
 
                 if (overwrite) {
-                    share.rm(sourcePath)
+                    share.rm(normalizedSource)
                 }
 
-                logger.info("File spostato con successo (smb): {} -> {}", sourcePath, destPath)
+                logger.info("File spostato con successo (smb): {} -> {}", normalizedSource, normalizedDest)
                 true
             } catch (e: Exception) {
-                logger.error("Errore spostamento file (smb) {} -> {}: {}", sourcePath, destPath, e.message, e)
+                logger.error("Errore spostamento file (smb) {} -> {}: {}", normalizedSource, normalizedDest, e.message, e)
                 false
             }
         }

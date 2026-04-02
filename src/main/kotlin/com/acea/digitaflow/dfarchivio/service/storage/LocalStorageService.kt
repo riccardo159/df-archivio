@@ -28,7 +28,6 @@ class LocalStorageService(
     private val ambiente: String,
 
     ) : FileStorageService {
-    val shareResolved = "Idrico_${ambiente}_DMS_DATI$"
 
     private val logger = LoggerFactory.getLogger(LocalStorageService::class.java)
     private val baseDir: Path = Paths.get(mountPath).toAbsolutePath()
@@ -117,30 +116,10 @@ class LocalStorageService(
 
 
     private fun resolveAndValidatePath(relativePath: String?): Path {
-        var normalized = relativePath?.trim() ?: ""
-
-        // SE È UN UNC PATH (inizia con \\)
-        if (normalized.startsWith("\\\\")) {
-            var path = normalized.removePrefix("\\\\")
-            val firstBackslashIndex = path.indexOf("\\")
-
-            if (firstBackslashIndex != -1) {
-                path = path.substring(firstBackslashIndex + 1)
-                normalized = path
-            }
-        }
-
-        // Normalizza separatori
-        normalized = normalized.replace("\\", "/").trimStart('/')
-
-        // Controlla il pattern "Idrico_*_DMS_DATI$" (non importa l'ambiente)
-        val sharePattern = Regex("""Idrico_\w+_DMS_DATI\$""")
-        if (!sharePattern.containsMatchIn(normalized)) {
-            normalized = "$shareResolved/$normalized"
-            logger.debug("Aggiunta share al path: {}", normalized)
-        } else {
-            logger.debug("Share con pattern Idrico_*_DMS_DATI$ già presente nel path")
-        }
+        // Rimuove radice UNC (server + share) e normalizza separatori
+        var normalized = stripUncRoot(relativePath ?: "")
+            .replace("\\", "/")
+            .trimStart('/')
 
         // Resolve e valida
         val resolved = baseDir.resolve(normalized).normalize()
@@ -158,7 +137,7 @@ class LocalStorageService(
             val dst = resolveAndValidatePath(destPath)
 
             if (!Files.exists(src)) {
-                logger.warn("dvato (local): {}", src)
+                logger.warn("File sorgente non trovato (local): {}", src)
                 return false
             }
 

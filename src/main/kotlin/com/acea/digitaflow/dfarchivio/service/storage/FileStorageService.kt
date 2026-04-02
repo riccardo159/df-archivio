@@ -71,7 +71,35 @@ interface FileStorageService {
     fun moveFile(sourcePath: String, destPath: String, overwrite: Boolean): Boolean
 
     fun buildPath(relativeDir: String?): String {
-        return if (relativeDir.isNullOrBlank()) ""
-        else relativeDir.replace("\\", "/").trim('/')
+        if (relativeDir.isNullOrBlank()) return ""
+        return stripUncRoot(relativeDir).replace("\\", "/").trim('/')
+    }
+
+    /**
+     * Rimuove la radice UNC (server + share) da un path.
+     * Es: \\zenit.aceaspa.it\Idrico_collaudo_DMS_DATI$\AAT2_OUTBOUND\... → AAT2_OUTBOUND\...
+     * Se il path non è UNC, lo restituisce invariato.
+     */
+    fun stripUncRoot(path: String): String {
+        var normalized = path.trim()
+
+        // Se è un UNC path (\\server\share\... oppure //server/share/...), rimuove server e share
+        if (normalized.startsWith("\\\\") || normalized.startsWith("//")) {
+            val sep = if (normalized.startsWith("\\\\")) "\\" else "/"
+            var p = normalized.removePrefix(sep + sep)
+            // Rimuove il server (es: zenit.aceaspa.it)
+            val firstSep = p.indexOf(sep)
+            if (firstSep != -1) p = p.substring(firstSep + 1)
+            // Rimuove la share (es: Idrico_collaudo_DMS_DATI$)
+            val secondSep = p.indexOf(sep)
+            if (secondSep != -1) p = p.substring(secondSep + 1)
+            return p
+        }
+
+        // Fallback: rimuove pattern Idrico_*_DMS_DATI$ se presente nel path
+        val sharePattern = Regex("""Idrico_\w+_DMS_DATI\$[/\\]""")
+        normalized = sharePattern.replace(normalized, "")
+
+        return normalized
     }
 }
