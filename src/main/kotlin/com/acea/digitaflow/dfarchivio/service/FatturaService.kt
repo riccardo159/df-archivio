@@ -1,5 +1,6 @@
 package com.acea.digitaflow.dfarchivio.service
 
+import com.acea.digitaflow.dfarchivio.config.StatoDocumento
 import com.acea.digitaflow.dfarchivio.dto.EsitoArchiviazioneResponse
 import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
 import com.acea.digitaflow.dfarchivio.request.EsitoArchiviazioneRequest
@@ -47,7 +48,6 @@ class FatturaService(
             archivio.dcsId, archivio.categoriaStampa, archivio.esitoSdi, archivio.canaleSecondario
         )
 
-        // 1. Esegui operazione file DMS
         val operazioneOk = eseguiOperazioneFile(archivio)
 
         // // 2. Registra esito su DB
@@ -62,12 +62,11 @@ class FatturaService(
      * Determina l'azione da eseguire in base a categoriaStampa, canaleSecondario ed esitoSdi.
      *
      * Regole:
-     *   Punto 1: B2C + esito NS(31)                            → backup
-     *   Punto 2: B2C + canaleSecondario SI + esito RC(30)/MC(32) → spostamento
-     *   Punto 3: B2B + canaleSecondario NO + esito MC(32)        → spostamento
-     *   Punto 4: B2B + canaleSecondario NO + esito RC(30)        → spostamento
-     *   Punto 5: PA/INCO + esito NS(31)/CK(39)                  → backup
-     *   Punto 6: PA/INCO + esito RC(30)/MC(32)                   → spostamento
+     *   Punto 1: B2C + esito NS(31)                              → backup
+     *   Punto 2: B2C + canaleSecondario SI + esito RC(30)/MC(32)  → spostamento
+     *   Punto 3-4: B2B + canaleSecondario NO + esito RC(30)/MC(32) → spostamento
+     *   Punto 5: PA/INCO + esito NS(31)/CK(39)                   → backup
+     *   Punto 6: PA/INCO + esito RC(30)/MC(32)                    → spostamento
      */
     private fun eseguiOperazioneFile(archivio: ArchivioRequest): Boolean {
         return try {
@@ -76,31 +75,26 @@ class FatturaService(
             val canaleSecTipo = archivio.tipoCanaleSecondario
 
             when {
-                // Punto 1: B2C, esito NS(31) → backup
                 categoria == "B2C" && esito == 31 -> {
                     logger.info("Caso IDRICO Punto 1: B2C + NS → backup")
                     spostaFileDmsInBackup(archivio)
                 }
 
-                // Punto 2: B2C, canaleSecondario SI, esito RC(30) o MC(32) → spostamento
                 categoria == "B2C" && canaleSecTipo == "SI" && esito in listOf(30, 32) -> {
                     logger.info("Caso IDRICO Punto 2: B2C + SI + RC/MC → spostamento")
                     spostaFileDms(archivio)
                 }
 
-                // Punti 3-4: B2B, canaleSecondario NO, esito MC(32) o RC(30) → spostamento
                 categoria == "B2B" && canaleSecTipo == "NO" && esito in listOf(30, 32) -> {
                     logger.info("Caso IDRICO Punto 3-4: B2B + NO + RC/MC → spostamento")
                     spostaFileDms(archivio)
                 }
 
-                // Punto 5: PA/INCO, esito NS(31) o CK(39) → backup
                 categoria in CATEGORIE_PA_INCO && esito in listOf(31, 39) -> {
                     logger.info("Caso IDRICO Punto 5: PA/INCO + NS/CK → backup")
                     spostaFileDmsInBackup(archivio)
                 }
 
-                // Punto 6: PA/INCO, esito RC(30) o MC(32) → spostamento
                 categoria in CATEGORIE_PA_INCO && esito in listOf(30, 32) -> {
                     logger.info("Caso IDRICO Punto 6: PA/INCO + RC/MC → spostamento")
                     spostaFileDms(archivio)
@@ -152,10 +146,15 @@ class FatturaService(
     }
 
     /**
-     * Estrae directory e nome base dal campo nomeFileDms.
+     * Estrae directory e nome base dal campo nomeFileDms, normalizzando il path.
      *
-     * Es: "AAT2_OUTBOUND/SUBFOLDER/IT01234" → Pair("AAT2_OUTBOUND/SUBFOLDER", "IT01234")
-     *     "IT01234"                          → Pair(null, "IT01234")
+     * Gestisce input come:
+     *   "C:/Users/.../df-share/AAT5_OUTBOUND/COPIA_RDI/2026/03/31/14/IT01234"
+     *     → Pair("AAT5_OUTBOUND/COPIA_RDI/2026/03/31/14", "IT01234")
+     *   "\\zenit.aceaspa.it\Idrico_collaudo_DMS_DATI$\AAT2_OUTBOUND\SUB\IT01234"
+     *     → Pair("AAT2_OUTBOUND/SUB", "IT01234")
+     *   "IT01234"
+     *     → Pair(null, "IT01234")
      */
     private fun splitSourcePath(nomeFileDms: String): Pair<String?, String> {
         val normalized = fileStorageService.normalizePath(nomeFileDms)
@@ -165,6 +164,16 @@ class FatturaService(
         } else {
             Pair(null, normalized)
         }
+    }
+
+    /**
+     * Costruisce il nome file con estensione, evitando duplicazione.
+     * "IT01234" + "pdf" → "IT01234.pdf"
+     * "IT01234.pdf" + "pdf" → "IT01234.pdf" (non "IT01234.pdf.pdf")
+     */
+    private fun fileNameWithExtension(baseName: String, extension: String): String {
+        return if (baseName.endsWith(".$extension", ignoreCase = true)) baseName
+        else "$baseName.$extension"
     }
 
     private fun spostaFileDms(archivio: ArchivioRequest): Boolean {
@@ -178,6 +187,19 @@ class FatturaService(
 
         val pdfOk = moveFileByExtension(sourceDir, fileBaseName, "pdf", destDir, overwrite = false)
         val xmlOk = moveFileByExtension(sourceDir, fileBaseName, "xml", destDir, overwrite = false)
+
+        if (!pdfOk || !xmlOk) {
+            val pdfAtDest = fileStorageService.fileExists(destDir, fileNameWithExtension(fileBaseName, "pdf"))
+            val xmlAtDest = fileStorageService.fileExists(destDir, fileNameWithExtension(fileBaseName, "xml"))
+
+            if (pdfAtDest && xmlAtDest) {
+                logger.info(
+                    "File già presenti alla destinazione (probabile re-delivery Kafka): base={}, destDir={}",
+                    fileBaseName, destDir
+                )
+                return true
+            }
+        }
 
         logger.info(
             "Spostamento completato per base={}: pdf={}, xml={}",
@@ -198,6 +220,19 @@ class FatturaService(
         val pdfOk = moveFileByExtension(sourceDir, fileBaseName, "pdf", destDir, overwrite = true)
         val xmlOk = moveFileByExtension(sourceDir, fileBaseName, "xml", destDir, overwrite = true)
 
+        if (!pdfOk || !xmlOk) {
+            val pdfAtDest = fileStorageService.fileExists(destDir, fileNameWithExtension(fileBaseName, "pdf"))
+            val xmlAtDest = fileStorageService.fileExists(destDir, fileNameWithExtension(fileBaseName, "xml"))
+
+            if (pdfAtDest && xmlAtDest) {
+                logger.info(
+                    "File già presenti in backup (probabile re-delivery Kafka): base={}, destDir={}",
+                    fileBaseName, destDir
+                )
+                return true
+            }
+        }
+
         logger.info(
             "Spostamento in backup completato per base={}: pdf={}, xml={}",
             fileBaseName, pdfOk, xmlOk
@@ -207,7 +242,7 @@ class FatturaService(
 
     /**
      * Sposta un singolo file (baseName.extension) da sourceDir a destDir.
-     * Usa combinePath per costruire path puliti senza prefissi UNC.
+     * Se baseName ha già l'estensione (es. "file.pdf"), non la duplica.
      */
     private fun moveFileByExtension(
         sourceDir: String?,
@@ -215,8 +250,8 @@ class FatturaService(
         extension: String,
         destDir: String,
         overwrite: Boolean
-    ): Boolean {//todo controllare se è presaente già l'estensione
-        val fileName = "$baseName.$extension"
+    ): Boolean {
+        val fileName = fileNameWithExtension(baseName, extension)
         val sourcePath = fileStorageService.combinePath(sourceDir, fileName)
         val destPath = fileStorageService.combinePath(destDir, fileName)
 

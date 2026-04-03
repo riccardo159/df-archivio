@@ -39,7 +39,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
       - name: df-archivio
-        image: "eu.gcr.io/aceabwceidriconoprod001/idrico/docs-flow/df-archivio:0.0.17"
+        image: "eu.gcr.io/aceabwceidriconoprod001/idrico/docs-flow/df-archivio:0.0.19"
         resources:
           limits:
             memory: "1Gi"

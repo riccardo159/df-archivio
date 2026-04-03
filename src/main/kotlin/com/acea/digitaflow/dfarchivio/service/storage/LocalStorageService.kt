@@ -15,8 +15,12 @@ import java.nio.file.StandardCopyOption
  *
  * Attiva quando: storage.type = local
  *
- * Il mount-path punta alla root della share (es: /mnt/dh-share).
+ * Il mount-path punta alla root della share (es: /mnt/dh-share o C:\Users\...\df-share).
  * Tutti i path relativi partono da lì (es: AAT2_OUTBOUND/...).
+ *
+ * Sovrascrive normalizePath() per strippare anche il prefisso mount-path locale,
+ * in modo che un path come "C:/Users/.../df-share/AAT5_OUTBOUND/..." diventi
+ * "AAT5_OUTBOUND/..." automaticamente.
  */
 @Service
 @ConditionalOnProperty(
@@ -34,6 +38,12 @@ class LocalStorageService(
     private val logger = LoggerFactory.getLogger(LocalStorageService::class.java)
     private val baseDir: Path = Paths.get(mountPath).toAbsolutePath()
 
+    /**
+     * Prefisso mount-path normalizzato con forward slash per il confronto.
+     * Es: "C:/Users/RiccardoRuscitto/Desktop/df-share"
+     */
+    private val mountPrefix: String = baseDir.toString().replace('\\', '/').trimEnd('/')
+
     init {
         logger.info("LocalStorageService initialized with mount path: {}", baseDir)
 
@@ -42,6 +52,39 @@ class LocalStorageService(
         } else {
             logger.info("Mount path disponibile: {}", baseDir)
         }
+    }
+
+    /**
+     * Sovrascrive normalizePath per gestire anche il prefisso mount-path locale.
+     *
+     * Gestisce tutti questi formati di input:
+     *   \\zenit.aceaspa.it\Idrico_collaudo_DMS_DATI$\AAT2_OUTBOUND\...  → AAT2_OUTBOUND/...
+     *   C:\Users\...\df-share\AAT5_OUTBOUND\...                         → AAT5_OUTBOUND/...
+     *   C:/Users/.../df-share/AAT5_OUTBOUND/...                         → AAT5_OUTBOUND/...
+     *   AAT2_OUTBOUND\subfolder\file.pdf                                → AAT2_OUTBOUND/subfolder/file.pdf
+     *   null / blank                                                    → ""
+     */
+    override fun normalizePath(rawPath: String?): String {
+        if (rawPath.isNullOrBlank()) return ""
+
+        // 1. Strip UNC root (\\server\share\...)
+        var normalized = stripUncRoot(rawPath.trim())
+
+        // 2. Uniforma separatori a forward slash
+        normalized = normalized.replace('\\', '/').replace(Regex("/+"), "/").trim('/')
+
+        // 3. Strip mount-path locale se presente come prefisso
+        //    Es: "C:/Users/.../df-share/AAT5_OUTBOUND/..." → "AAT5_OUTBOUND/..."
+        if (normalized.startsWith(mountPrefix, ignoreCase = true)) {
+            normalized = normalized.removePrefix(mountPrefix).trimStart('/')
+        }
+        // Prova anche senza drive letter (caso in cui il path inizia con il nome della cartella di mount)
+        val mountDirName = baseDir.fileName?.toString() ?: ""
+        if (mountDirName.isNotBlank() && normalized.startsWith("$mountDirName/", ignoreCase = true)) {
+            normalized = normalized.removePrefix("$mountDirName/")
+        }
+
+        return normalized.trim('/')
     }
 
     override fun listFiles(relativePath: String?): List<String> {
@@ -129,23 +172,20 @@ class LocalStorageService(
             // Crea le directory di destinazione se non esistono
             Files.createDirectories(dst.parent)
 
-            // Usa Files.move atomico con le opzioni appropriate
-            val options = buildList {
-                add(StandardCopyOption.ATOMIC_MOVE)
-                if (overwrite) add(StandardCopyOption.REPLACE_EXISTING)
-            }.toTypedArray()
-
+            // Tenta ATOMIC_MOVE, fallback a copy+delete se cross-device
             try {
-                Files.move(src, dst, *options)
-            } catch (e: java.nio.file.AtomicMoveNotSupportedException) {
-                // Fallback: se ATOMIC_MOVE non è supportato (cross-device), copy + delete
-                logger.debug("ATOMIC_MOVE non supportato, fallback copy+delete: {} -> {}", src, dst)
-                val copyOptions = if (overwrite) {
-                    arrayOf(StandardCopyOption.REPLACE_EXISTING)
+                if (overwrite) {
+                    Files.move(src, dst, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
                 } else {
-                    emptyArray()
+                    Files.move(src, dst, StandardCopyOption.ATOMIC_MOVE)
                 }
-                Files.copy(src, dst, *copyOptions)
+            } catch (e: java.nio.file.AtomicMoveNotSupportedException) {
+                logger.debug("ATOMIC_MOVE non supportato, fallback copy+delete: {} -> {}", src, dst)
+                if (overwrite) {
+                    Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING)
+                } else {
+                    Files.copy(src, dst)
+                }
                 Files.deleteIfExists(src)
             }
 
@@ -162,12 +202,11 @@ class LocalStorageService(
 
     /**
      * Risolve un path relativo contro la baseDir, normalizzando eventuali
-     * prefissi UNC legacy tramite il metodo dell'interfaccia.
+     * prefissi UNC o mount-path locale tramite normalizePath().
      *
      * Garantisce che il path risolto resti dentro la baseDir (path traversal check).
      */
     private fun resolveAndValidatePath(relativePath: String?): Path {
-        // Delega la normalizzazione all'interfaccia (rimuove UNC, uniforma separatori)
         val normalized = normalizePath(relativePath)
 
         val resolved = baseDir.resolve(normalized).normalize()
