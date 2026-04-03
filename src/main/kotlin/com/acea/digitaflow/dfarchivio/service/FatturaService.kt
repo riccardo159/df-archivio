@@ -1,6 +1,5 @@
 package com.acea.digitaflow.dfarchivio.service
 
-import com.acea.digitaflow.dfarchivio.config.StatoDocumento
 import com.acea.digitaflow.dfarchivio.dto.EsitoArchiviazioneResponse
 import com.acea.digitaflow.dfarchivio.request.ArchivioRequest
 import com.acea.digitaflow.dfarchivio.request.EsitoArchiviazioneRequest
@@ -17,14 +16,30 @@ class FatturaService(
 
     private val logger = LoggerFactory.getLogger(FatturaService::class.java)
 
+    companion object {
+        private const val OUTBOUND_SUFFIX = "_OUTBOUND"
+        private const val MASSIVI_SAPDOCID = "MASSIVI_OUTBOUND_SAPDOCID"
+        private const val MASSIVI_NO_SAPDOCID = "MASSIVI_OUTBOUND_NO_SAPDOCID"
+        private const val BCK_DATA = "BCK_DATA"
+
+        private val CATEGORIE_PA_INCO = setOf("PA", "INCO")
+    }
+
+    // ---- Path di destinazione ----
+
+    private fun outboundDir(societa: String): String =
+        "${societa}$OUTBOUND_SUFFIX"
+
     private fun sapDocIdDestPath(societa: String): String =
-        fileStorageService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_SAPDOCID")
+        fileStorageService.combinePath(outboundDir(societa), MASSIVI_SAPDOCID)
 
     private fun noSapDocIdDestPath(societa: String): String =
-        fileStorageService.buildPath(societa + "_OUTBOUND/MASSIVI_OUTBOUND_NO_SAPDOCID")
+        fileStorageService.combinePath(outboundDir(societa), MASSIVI_NO_SAPDOCID)
 
     private fun bckDataDestPath(societa: String): String =
-        fileStorageService.buildPath(societa + "_OUTBOUND/BCK_DATA")
+        fileStorageService.combinePath(outboundDir(societa), BCK_DATA)
+
+    // ---- Archiviazione ----
 
     fun archiviazione(archivio: ArchivioRequest) {
         logger.info(
@@ -35,68 +50,66 @@ class FatturaService(
         // 1. Esegui operazione file DMS
         val operazioneOk = eseguiOperazioneFile(archivio)
 
-      // // 2. Registra esito su DB
-      // val statoEsito = if (operazioneOk) StatoDocumento.ARCHIVIATO else StatoDocumento.NON_ARCHIVIATO
-      // val esito = registraEsito(archivio, statoEsito)
-
+        // // 2. Registra esito su DB
+        // val statoEsito = if (operazioneOk) StatoDocumento.ARCHIVIATO else StatoDocumento.NON_ARCHIVIATO
+        // val esito = registraEsito(archivio, statoEsito)
     }
 
     fun registraEsito(request: EsitoArchiviazioneRequest): EsitoArchiviazioneResponse =
         esitoArchiviazioneService.aggiornaStato(request)
 
+    /**
+     * Determina l'azione da eseguire in base a categoriaStampa, canaleSecondario ed esitoSdi.
+     *
+     * Regole:
+     *   Punto 1: B2C + esito NS(31)                            → backup
+     *   Punto 2: B2C + canaleSecondario SI + esito RC(30)/MC(32) → spostamento
+     *   Punto 3: B2B + canaleSecondario NO + esito MC(32)        → spostamento
+     *   Punto 4: B2B + canaleSecondario NO + esito RC(30)        → spostamento
+     *   Punto 5: PA/INCO + esito NS(31)/CK(39)                  → backup
+     *   Punto 6: PA/INCO + esito RC(30)/MC(32)                   → spostamento
+     */
     private fun eseguiOperazioneFile(archivio: ArchivioRequest): Boolean {
         return try {
+            val categoria = archivio.categoriaStampa
+            val esito = archivio.esitoSdi
+            val canaleSecTipo = archivio.tipoCanaleSecondario
+
             when {
-                // Punto 1: B2C, esito 31(NS) -> Sposta file DMS in backup
-                archivio.categoriaStampa == "B2C" &&
-                        archivio.esitoSdi == 31 -> {
-                    logger.info("Caso IDRICO Punto 1: spostamento file DMS in backup")
+                // Punto 1: B2C, esito NS(31) → backup
+                categoria == "B2C" && esito == 31 -> {
+                    logger.info("Caso IDRICO Punto 1: B2C + NS → backup")
                     spostaFileDmsInBackup(archivio)
                 }
 
-                // Punto 2: B2C, canaleSecondario = SI, esito 30(RC) o 32(MC)
-                archivio.categoriaStampa == "B2C" &&
-                        archivio.tipoCanaleSecondario == "SI" &&
-                        (archivio.esitoSdi == 30 || archivio.esitoSdi == 32) -> {
-                    logger.info("Caso IDRICO Punto 2: spostamento file DMS")
+                // Punto 2: B2C, canaleSecondario SI, esito RC(30) o MC(32) → spostamento
+                categoria == "B2C" && canaleSecTipo == "SI" && esito in listOf(30, 32) -> {
+                    logger.info("Caso IDRICO Punto 2: B2C + SI + RC/MC → spostamento")
                     spostaFileDms(archivio)
                 }
 
-                // Punto 3: B2B, canaleSecondario = NO, esito 32(MC)
-                archivio.categoriaStampa == "B2B" &&
-                        archivio.tipoCanaleSecondario == "NO" &&
-                        archivio.esitoSdi == 32 -> {
-                    logger.info("Caso IDRICO Punto 3: spostamento file DMS")
+                // Punti 3-4: B2B, canaleSecondario NO, esito MC(32) o RC(30) → spostamento
+                categoria == "B2B" && canaleSecTipo == "NO" && esito in listOf(30, 32) -> {
+                    logger.info("Caso IDRICO Punto 3-4: B2B + NO + RC/MC → spostamento")
                     spostaFileDms(archivio)
                 }
 
-                // Punto 4: B2B, canaleSecondario = NO, esito 30(RC)
-                archivio.categoriaStampa == "B2B" &&
-                        archivio.tipoCanaleSecondario == "NO" &&
-                        archivio.esitoSdi == 30 -> {
-                    logger.info("Caso IDRICO Punto 4: spostamento file DMS")
-                    spostaFileDms(archivio)
-                }
-
-                // Punto 5: PA / INCO, esito 31(NS) o 39(CK) -> Sposta file DMS in backup
-                archivio.categoriaStampa in listOf("PA", "INCO") &&
-                        (archivio.esitoSdi == 31 || archivio.esitoSdi == 39) -> {
-                    logger.info("Caso IDRICO Punto 5: spostamento file DMS in backup")
+                // Punto 5: PA/INCO, esito NS(31) o CK(39) → backup
+                categoria in CATEGORIE_PA_INCO && esito in listOf(31, 39) -> {
+                    logger.info("Caso IDRICO Punto 5: PA/INCO + NS/CK → backup")
                     spostaFileDmsInBackup(archivio)
                 }
 
-                // Punto 6: PA / INCO, esito 30(RC) o 32(MC)
-                archivio.categoriaStampa in listOf("PA", "INCO") &&
-                        (archivio.esitoSdi == 30 || archivio.esitoSdi == 32) -> {
-                    logger.info("Caso IDRICO Punto 6: spostamento file DMS")
+                // Punto 6: PA/INCO, esito RC(30) o MC(32) → spostamento
+                categoria in CATEGORIE_PA_INCO && esito in listOf(30, 32) -> {
+                    logger.info("Caso IDRICO Punto 6: PA/INCO + RC/MC → spostamento")
                     spostaFileDms(archivio)
                 }
 
                 else -> {
                     logger.warn(
-                        "Nessuna azione prevista per combinazione categoria={}, canaleSecondario={}, tipoCanaleSecondario={}, esito={}",
-                        archivio.categoriaStampa, archivio.canaleSecondario,
-                        archivio.tipoCanaleSecondario, archivio.esitoSdi
+                        "Nessuna azione prevista per categoria={}, canaleSecondario={}, tipoCanaleSecondario={}, esito={}",
+                        categoria, archivio.canaleSecondario, canaleSecTipo, esito
                     )
                     false
                 }
@@ -118,8 +131,18 @@ class FatturaService(
         return esitoArchiviazioneService.aggiornaStato(request)
     }
 
+    /**
+     * Determina la directory di destinazione per i file DMS.
+     *
+     * Priorità:
+     *   1. dmsDestPath esplicito dalla request
+     *   2. MASSIVI_OUTBOUND_SAPDOCID se sapDocId è presente
+     *   3. MASSIVI_OUTBOUND_NO_SAPDOCID altrimenti
+     */
     private fun risolviDestinazioneDms(archivio: ArchivioRequest): String {
-        archivio.dmsDestPath?.let { return fileStorageService.buildPath(it) }
+        archivio.dmsDestPath?.let {
+            return fileStorageService.normalizePath(it)
+        }
 
         return if (!archivio.sapDocId.isNullOrBlank()) {
             sapDocIdDestPath(archivio.societa)
@@ -128,59 +151,76 @@ class FatturaService(
         }
     }
 
+    /**
+     * Estrae directory e nome base dal campo nomeFileDms.
+     *
+     * Es: "AAT2_OUTBOUND/SUBFOLDER/IT01234" → Pair("AAT2_OUTBOUND/SUBFOLDER", "IT01234")
+     *     "IT01234"                          → Pair(null, "IT01234")
+     */
+    private fun splitSourcePath(nomeFileDms: String): Pair<String?, String> {
+        val normalized = fileStorageService.normalizePath(nomeFileDms)
+        val lastSlash = normalized.lastIndexOf('/')
+        return if (lastSlash >= 0) {
+            Pair(normalized.substring(0, lastSlash), normalized.substring(lastSlash + 1))
+        } else {
+            Pair(null, normalized)
+        }
+    }
+
     private fun spostaFileDms(archivio: ArchivioRequest): Boolean {
-        val sourceBase = archivio.nomeFileDms
+        val (sourceDir, fileBaseName) = splitSourcePath(archivio.nomeFileDms)
         val destDir = risolviDestinazioneDms(archivio)
 
-        val lastSep = maxOf(sourceBase.lastIndexOf('/'), sourceBase.lastIndexOf('\\'))
-        val sourceDir = if (lastSep >= 0) sourceBase.substring(0, lastSep) else null
-        val fileBaseName = if (lastSep >= 0) sourceBase.substring(lastSep + 1) else sourceBase
+        logger.info(
+            "Spostamento file DMS: base={}, sourceDir={}, destDir={}",
+            fileBaseName, sourceDir, destDir
+        )
 
-        logger.info("Spostamento file DMS: base={}, sourceDir={}, destDir={}", fileBaseName, sourceDir?.let { fileStorageService.buildPath(it) }, destDir)
+        val pdfOk = moveFileByExtension(sourceDir, fileBaseName, "pdf", destDir, overwrite = false)
+        val xmlOk = moveFileByExtension(sourceDir, fileBaseName, "xml", destDir, overwrite = false)
 
-        val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, overwrite = false)
-        val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, overwrite = false)
-
-        logger.info("Spostamento file DMS completato per base={}, pdfOk={}, xmlOk={}", fileBaseName, pdfOk, xmlOk)
+        logger.info(
+            "Spostamento completato per base={}: pdf={}, xml={}",
+            fileBaseName, pdfOk, xmlOk
+        )
         return pdfOk && xmlOk
     }
 
     private fun spostaFileDmsInBackup(archivio: ArchivioRequest): Boolean {
-        val sourceBase = archivio.nomeFileDms
+        val (sourceDir, fileBaseName) = splitSourcePath(archivio.nomeFileDms)
         val destDir = bckDataDestPath(archivio.societa)
 
-        val lastSep = maxOf(sourceBase.lastIndexOf('/'), sourceBase.lastIndexOf('\\'))
-        val sourceDir = if (lastSep >= 0) sourceBase.substring(0, lastSep) else null
-        val fileBaseName = if (lastSep >= 0) sourceBase.substring(lastSep + 1) else sourceBase
+        logger.info(
+            "Spostamento file DMS in backup: base={}, sourceDir={}, destDir={}",
+            fileBaseName, sourceDir, destDir
+        )
 
-        logger.info("Spostamento file DMS in backup: base={}, sourceDir={}, destDir={}", fileBaseName, sourceDir?.let { fileStorageService.buildPath(it) }, destDir)
+        val pdfOk = moveFileByExtension(sourceDir, fileBaseName, "pdf", destDir, overwrite = true)
+        val xmlOk = moveFileByExtension(sourceDir, fileBaseName, "xml", destDir, overwrite = true)
 
-        val pdfOk = moveFile(sourceDir, "$fileBaseName.pdf", destDir, overwrite = true)
-        val xmlOk = moveFile(sourceDir, "$fileBaseName.xml", destDir, overwrite = true)
-
-        logger.info("Spostamento file DMS in backup completato per base={}, pdfOk={}, xmlOk={}", fileBaseName, pdfOk, xmlOk)
+        logger.info(
+            "Spostamento in backup completato per base={}: pdf={}, xml={}",
+            fileBaseName, pdfOk, xmlOk
+        )
         return pdfOk && xmlOk
     }
 
-    private fun moveFile(
-        sourceRelativeDir: String?,
-        sourceFileName: String,
-        destRelativeDir: String?,
+    /**
+     * Sposta un singolo file (baseName.extension) da sourceDir a destDir.
+     * Usa combinePath per costruire path puliti senza prefissi UNC.
+     */
+    private fun moveFileByExtension(
+        sourceDir: String?,
+        baseName: String,
+        extension: String,
+        destDir: String,
         overwrite: Boolean
-    ): Boolean {
+    ): Boolean {//todo controllare se è presaente già l'estensione
+        val fileName = "$baseName.$extension"
+        val sourcePath = fileStorageService.combinePath(sourceDir, fileName)
+        val destPath = fileStorageService.combinePath(destDir, fileName)
 
-        val sourcePath = listOfNotNull(sourceRelativeDir, sourceFileName)
-            .joinToString("/")
-            .replace("\\", "/")
-
-        val destPath = listOfNotNull(destRelativeDir, sourceFileName)
-            .joinToString("/")
-            .replace("\\", "/")
-
-        // Log con path normalizzati (senza radice UNC)
-        val sourceClean = fileStorageService.buildPath(sourcePath)
-        val destClean = fileStorageService.buildPath(destPath)
-        logger.info("Spostamento file: {} -> {} (overwrite={})", sourceClean, destClean, overwrite)
+        logger.info("Move: {} -> {} (overwrite={})", sourcePath, destPath, overwrite)
 
         return fileStorageService.moveFile(sourcePath, destPath, overwrite)
     }

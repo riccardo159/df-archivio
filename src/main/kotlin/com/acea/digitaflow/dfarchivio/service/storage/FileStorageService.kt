@@ -1,7 +1,5 @@
 package com.acea.digitaflow.dfarchivio.service.storage
 
-import com.acea.digitalflow.df_common.dto.StorageHealthStatus
-
 
 // ============================================
 // ABSTRACTION LAYER - Storage Service Interface
@@ -68,17 +66,55 @@ interface FileStorageService {
      */
     fun deleteFileIfExists(relativeDir: String? = null, fileName: String)
 
+    /**
+     * Sposta un file da sourcePath a destPath.
+     * Entrambi i path sono relativi alla base configurata.
+     *
+     * @param sourcePath Path relativo del file sorgente
+     * @param destPath Path relativo di destinazione
+     * @param overwrite Se true, sovrascrive il file di destinazione se esiste
+     * @return true se lo spostamento è avvenuto con successo
+     */
     fun moveFile(sourcePath: String, destPath: String, overwrite: Boolean): Boolean
 
-    fun buildPath(relativeDir: String?): String {
-        if (relativeDir.isNullOrBlank()) return ""
-        return stripUncRoot(relativeDir).replace("\\", "/").trim('/')
+    /**
+     * Normalizza un path rimuovendo eventuali prefissi UNC legacy
+     * e uniformando i separatori a forward slash.
+     *
+     * Trasforma:
+     *   \\zenit.aceaspa.it\Idrico_*_DMS_DATI$\AAT2_OUTBOUND\... → AAT2_OUTBOUND/...
+     *   AAT2_OUTBOUND\subfolder\file.pdf                        → AAT2_OUTBOUND/subfolder/file.pdf
+     *   null / blank                                             → ""
+     */
+    fun normalizePath(rawPath: String?): String {
+        if (rawPath.isNullOrBlank()) return ""
+
+        val stripped = stripUncRoot(rawPath.trim())
+        return stripped
+            .replace('\\', '/')       // uniforma separatori
+            .replace(Regex("/+"), "/") // rimuove slash doppi
+            .trim('/')
+    }
+
+    /**
+     * Combina segmenti di path in un unico path normalizzato.
+     * Ignora segmenti null o blank.
+     *
+     * Es: combinePath("AAT2_OUTBOUND", "MASSIVI", "file.pdf")
+     *     → "AAT2_OUTBOUND/MASSIVI/file.pdf"
+     */
+    fun combinePath(vararg segments: String?): String {
+        return segments
+            .filterNot { it.isNullOrBlank() }
+            .joinToString("/") { normalizePath(it) }
+            .replace(Regex("/+"), "/")
+            .trim('/')
     }
 
     /**
      * Rimuove la radice UNC (server + share) da un path.
      * Es: \\zenit.aceaspa.it\Idrico_collaudo_DMS_DATI$\AAT2_OUTBOUND\... → AAT2_OUTBOUND\...
-     * Se il path non è UNC, lo restituisce invariato.
+     * Se il path non è UNC, rimuove comunque il pattern della share se presente.
      */
     fun stripUncRoot(path: String): String {
         var normalized = path.trim()
@@ -102,4 +138,5 @@ interface FileStorageService {
 
         return normalized
     }
+
 }

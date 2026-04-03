@@ -1,6 +1,5 @@
 package com.acea.digitaflow.dfarchivio.service.storage
 
-import com.acea.digitalflow.df_common.dto.StorageHealthStatus
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -15,6 +14,9 @@ import java.nio.file.StandardCopyOption
  * Implementazione Local Storage per mount locale (NFS/CIFS)
  *
  * Attiva quando: storage.type = local
+ *
+ * Il mount-path punta alla root della share (es: /mnt/dh-share).
+ * Tutti i path relativi partono da lì (es: AAT2_OUTBOUND/...).
  */
 @Service
 @ConditionalOnProperty(
@@ -48,7 +50,7 @@ class LocalStorageService(
 
         val dirFile = dir.toFile()
         if (!dirFile.exists() || !dirFile.isDirectory) {
-            logger.warn("Directory non trovato: {}", dir)
+            logger.warn("Directory non trovata: {}", dir)
             return emptyList()
         }
 
@@ -64,7 +66,7 @@ class LocalStorageService(
         logger.info("Local download: {}", file.absolutePath)
 
         if (!file.exists()) {
-            throw FileNotFoundException("File non trovato: $fileName")
+            throw FileNotFoundException("File non trovato: $fileName in $relativeDir")
         }
 
         return file.readBytes()
@@ -114,47 +116,66 @@ class LocalStorageService(
         }
     }
 
-
-    private fun resolveAndValidatePath(relativePath: String?): Path {
-        // Rimuove radice UNC (server + share) e normalizza separatori
-        var normalized = stripUncRoot(relativePath ?: "")
-            .replace("\\", "/")
-            .trimStart('/')
-
-        // Resolve e valida
-        val resolved = baseDir.resolve(normalized).normalize()
-
-        if (!resolved.startsWith(baseDir)) {
-            throw IllegalArgumentException("Path traversal non permesso: $relativePath")
-        }
-
-        return resolved
-    }
-
     override fun moveFile(sourcePath: String, destPath: String, overwrite: Boolean): Boolean {
         return try {
             val src = resolveAndValidatePath(sourcePath)
             val dst = resolveAndValidatePath(destPath)
 
             if (!Files.exists(src)) {
-                logger.warn("File sorgente non trovato (local): {}", src)
+                logger.warn("File sorgente non trovato: {}", src)
                 return false
             }
 
+            // Crea le directory di destinazione se non esistono
             Files.createDirectories(dst.parent)
 
-            if (overwrite) {
-                Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING)
+            // Usa Files.move atomico con le opzioni appropriate
+            val options = buildList {
+                add(StandardCopyOption.ATOMIC_MOVE)
+                if (overwrite) add(StandardCopyOption.REPLACE_EXISTING)
+            }.toTypedArray()
+
+            try {
+                Files.move(src, dst, *options)
+            } catch (e: java.nio.file.AtomicMoveNotSupportedException) {
+                // Fallback: se ATOMIC_MOVE non è supportato (cross-device), copy + delete
+                logger.debug("ATOMIC_MOVE non supportato, fallback copy+delete: {} -> {}", src, dst)
+                val copyOptions = if (overwrite) {
+                    arrayOf(StandardCopyOption.REPLACE_EXISTING)
+                } else {
+                    emptyArray()
+                }
+                Files.copy(src, dst, *copyOptions)
                 Files.deleteIfExists(src)
-            } else {
-                Files.copy(src, dst)
             }
 
-            logger.info("File spostato con successo (local): {} -> {}", src, dst)
+            logger.info("File spostato con successo: {} -> {}", src, dst)
             true
+        } catch (e: java.nio.file.FileAlreadyExistsException) {
+            logger.error("File di destinazione già esistente (overwrite=false): {}", destPath)
+            false
         } catch (e: Exception) {
-            logger.error("Errore spostamento file (local) {} -> {}: {}", sourcePath, destPath, e.message, e)
+            logger.error("Errore spostamento file {} -> {}: {}", sourcePath, destPath, e.message, e)
             false
         }
+    }
+
+    /**
+     * Risolve un path relativo contro la baseDir, normalizzando eventuali
+     * prefissi UNC legacy tramite il metodo dell'interfaccia.
+     *
+     * Garantisce che il path risolto resti dentro la baseDir (path traversal check).
+     */
+    private fun resolveAndValidatePath(relativePath: String?): Path {
+        // Delega la normalizzazione all'interfaccia (rimuove UNC, uniforma separatori)
+        val normalized = normalizePath(relativePath)
+
+        val resolved = baseDir.resolve(normalized).normalize()
+
+        if (!resolved.startsWith(baseDir)) {
+            throw IllegalArgumentException("Path traversal non permesso: $relativePath -> $resolved")
+        }
+
+        return resolved
     }
 }

@@ -58,4 +58,4 @@ zenit:
 storage:
   type: ${STORAGE_TYPE:local} # smb
   local:
-    mount-path: ${STORAGE_LOCAL_MOUNT_PATH:/df-share}
+    mount-path: ${STORAGE_LOCAL_MOUNT_PATH:C:\Users\RiccardoRuscitto\Desktop\df-share}

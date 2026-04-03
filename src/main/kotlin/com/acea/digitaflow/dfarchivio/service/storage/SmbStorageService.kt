@@ -1,6 +1,5 @@
 package com.acea.digitaflow.dfarchivio.service.storage
 
-import com.acea.digitalflow.df_common.dto.StorageHealthStatus
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation
